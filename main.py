@@ -63,7 +63,7 @@ async def on_ready():
 
             if difflen != 0:
                 await channel.send(f'My master has added {difflen} picture(s) to favourites. I will post them soon!')
-                await asyncio.sleep(send_interval)
+                await asyncio.sleep(announce_interval)
 
                 for x in diff:
                     file = f'{directory}/{x}'
@@ -97,18 +97,18 @@ if __name__ == "__main__":
             with open('config.yaml') as f:
                 try:
                     data = yaml.load(f, Loader=yaml.FullLoader)
-                    directory, check_interval, send_interval = data['directory'], data['check_interval'], \
-                        data['send_interval']
+                    directory, check_interval, send_interval, announce_interval = data['directory'], \
+                        data['check_interval'], data['send_interval'], data['announce_interval']
                 except yaml.YAMLError as exception:
                     print(exception)
 
         except FileNotFoundError as exception:
             print(exception)
-            default_config = {'directory': 'Z:/Neural/SortedPictures', 'check_interval': 20, 'send_interval': 10}
+            default_config = {'directory': 'Z:/Neural/SortedPictures', 'check_interval': 20, 'send_interval': 10,
+                              'announce_interval': 3}
             with open('config.yaml', 'w') as f:
                 data = yaml.dump(default_config, f)
 
     # start bot
     CHANNEL_ID = os.environ['CHANNEL_ID']
     bot.run(os.environ['DISCORD_API_KEY'])
-
