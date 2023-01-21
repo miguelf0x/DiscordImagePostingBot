@@ -7,7 +7,6 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-PATH = 'Z:/Neural/SortedPictures'
 CHANNEL_ID = 1061711182085488691
 DELAY = 5
 
@@ -44,4 +43,5 @@ async def on_ready():
 
 if __name__ == "__main__":
     load_dotenv()
+    PATH = os.environ['PATH']
     bot.run(os.environ['DISCORD_API_KEY'])
