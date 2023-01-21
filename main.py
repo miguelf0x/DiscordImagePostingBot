@@ -71,12 +71,20 @@ async def on_ready():
                     img.close()
                     name = x.split('-')
 
+                    # Wanted image name format is seed-sampler-steps-model_hash
+                    # So we create checks for any other format
+
+                    if len(name[2]) > 19:
+                        sampler = 'unknown'
+                    else:
+                        sampler = name[2]
+
                     if len(name[4]) > 8:
                         modelhash = 'unknown'
                     else:
                         modelhash = name[4]
 
-                    await channel.send(f'Model hash: {modelhash}, Sampler: {name[2]}, Steps: {name[3]}, '
+                    await channel.send(f'Model hash: {modelhash}, Sampler: {sampler}, Steps: {name[3]}, '
                                        f'Seed: {name[1]}\nResolution: {width}x{height} [AR: {round(width/height, 3)}]',
                                        file=discord.File(file))
 
