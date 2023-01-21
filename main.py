@@ -78,8 +78,8 @@ async def on_ready():
                     else:
                         modelhash = name[4]
 
-                    await channel.send(f'Model hash: {modelhash}, Sampler: {name[2]}, Steps: {name[3]}, Seed: {name[1]}\n'
-                                       f'Resolution: {width}x{height} [AR: {round(width/height, 3)}]',
+                    await channel.send(f'Model hash: {modelhash}, Sampler: {name[2]}, Steps: {name[3]}, '
+                                       f'Seed: {name[1]}\nResolution: {width}x{height} [AR: {round(width/height, 3)}]',
                                        file=discord.File(file))
 
                     await asyncio.sleep(send_interval)
@@ -89,15 +89,24 @@ if __name__ == "__main__":
 
     # load envvars
     load_dotenv()
+    directory = None
 
     # load config
-    with open('config.yaml') as f:
+    while directory is None:
         try:
-            data = yaml.load(f, Loader=yaml.FullLoader)
-            directory, check_interval, send_interval = data['directory'], data['check_interval'], data['send_interval']
-        except yaml.YAMLError as exception:
+            with open('config.yaml') as f:
+                try:
+                    data = yaml.load(f, Loader=yaml.FullLoader)
+                    directory, check_interval, send_interval = data['directory'], data['check_interval'], \
+                        data['send_interval']
+                except yaml.YAMLError as exception:
+                    print(exception)
+
+        except FileNotFoundError as exception:
             print(exception)
-    f.close()
+            default_config = {'directory': 'Z:/Neural/SortedPictures', 'check_interval': 20, 'send_interval': 10}
+            with open('config.yaml', 'w') as f:
+                data = yaml.dump(default_config, f)
 
     # start bot
     CHANNEL_ID = os.environ['CHANNEL_ID']
