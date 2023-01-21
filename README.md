@@ -9,6 +9,7 @@ This tiny bot is designed for posting newly added images in specified directory
 To run this project, you will need to add the following environment variables to your .env file
 
 `DISCORD_API_KEY`
+`CHANNEL_ID`
 
 ## Authors
 
