@@ -21,9 +21,6 @@ class TracedValue:
     def get(self):
         return self.cur_value
 
-    def force_set(self, value):
-        self.cur_value = value
-
     def set(self, value):
         if self.cur_value != value:
             self.prev_value = self.cur_value
@@ -51,6 +48,7 @@ def get_new_files(before, after):
 
 @bot.event
 async def on_ready():
+
     channel = bot.get_channel(CHANNEL_ID)
     files = TracedValue(get_files(directory))
 
@@ -87,11 +85,11 @@ async def on_ready():
 
 if __name__ == "__main__":
 
-    # load envvars
+    # load .env
     load_dotenv()
-    directory = None
 
-    # load config
+    # create new config and load it
+    directory = None
     while directory is None:
         try:
             with open('config.yaml') as f:
@@ -109,6 +107,6 @@ if __name__ == "__main__":
             with open('config.yaml', 'w') as f:
                 data = yaml.dump(default_config, f)
 
-    # start bot
+    # assign envvars and start bot
     CHANNEL_ID = os.environ['CHANNEL_ID']
     bot.run(os.environ['DISCORD_API_KEY'])
