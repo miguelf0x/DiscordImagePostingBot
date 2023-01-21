@@ -79,10 +79,14 @@ async def on_ready():
                     else:
                         sampler = name[2]
 
-                    if len(name[4]) > 8:
+                    try:
+                        if len(name[4]) > 8:
+                            modelhash = 'unknown'
+                        else:
+                            modelhash = name[4]
+                    except IndexError as index_exception:
+                        print(index_exception)
                         modelhash = 'unknown'
-                    else:
-                        modelhash = name[4]
 
                     await channel.send(f'Model hash: {modelhash}, Sampler: {sampler}, Steps: {name[3]}, '
                                        f'Seed: {name[1]}\nResolution: {width}x{height} [AR: {round(width/height, 3)}]',
