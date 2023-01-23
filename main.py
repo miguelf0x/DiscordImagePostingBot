@@ -16,8 +16,6 @@ from dotenv import load_dotenv
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
-URL = "http://127.0.0.1:7860"
-
 NEGATIVE_PROMPT_4X = "((((ugly)))), "
 NEGATIVE_PROMPT_3X = "(((duplicate))), (((mutation))), (((deformed))), (((bad proportions))), (((disfigured))), " \
                      "(((extra arms))), (((extra legs))), (((long neck))), (((worst quality))), "
@@ -76,7 +74,7 @@ async def gen(ctx, *, arg):
     prompt["prompt"] = arg
 
     logging.info(f"start task ")
-    response = requests.post(url=f'{URL}/sdapi/v1/txt2img', json=prompt)
+    response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
 
     if response.status_code > 400:
         logging.error(response.text)
@@ -92,7 +90,7 @@ async def gen(ctx, *, arg):
         png_payload = {
             "image": "data:image/png;base64," + item
         }
-        response2 = requests.post(url=f'{URL}/sdapi/v1/png-info', json=png_payload)
+        response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info', json=png_payload)
 
         pnginfo = PngImagePlugin.PngInfo()
         pnginfo.add_text("parameters", response2.json().get("info"))
@@ -211,6 +209,8 @@ if __name__ == "__main__":
                     post_directory = data["post_directory"]
                     best_directory = data["best_directory"]
                     shit_directory = data["shit_directory"]
+                    webui_url = data["webui_url"]
+
                 except yaml.YAMLError as exception:
                     print(exception)
 
@@ -221,7 +221,9 @@ if __name__ == "__main__":
                               'shit_directory': 'Z:/Neural/SortedPictures/Shit',
                               'check_interval': 20,
                               'send_interval': 10,
-                              'announce_interval': 3}
+                              'announce_interval': 3,
+                              'webui_url': 'http://127.0.0.1:7860'
+            }
             with open('config.yaml', 'w') as f:
                 data = yaml.dump(default_config, f)
 

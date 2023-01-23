@@ -4,4 +4,4 @@ send_interval: 10
 post_directory: Z:/Neural/RawPictures/islabot
 best_directory: Z:/Neural/SortedPictures/Best
 shit_directory: Z:/Neural/SortedPictures/Shit
-
+webui_url: http://127.0.0.1:7860
