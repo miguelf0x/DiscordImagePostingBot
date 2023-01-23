@@ -13,7 +13,8 @@ To run this project, you will need to add the following environment variables to
 
 ## Configuration
 
-Configuration file is located in project root (config.yaml). Currently available settings:
+Configuration files (config.yaml, default-config.yaml) are located in config directory. 
+Currently available settings are:
 * `announce_interval` sets interval between new images announce and first post
 * `send_interval` sets interval between posts
 * `check_interval` sets interval between directory changes checking
