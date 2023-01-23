@@ -70,6 +70,34 @@ def get_files(source):
     return files
 
 
+def load_config(config_dir):
+
+    while post_directory is None:
+        try:
+            with open(os.path.join(config_dir, 'config.yaml')) as f:
+                try:
+                    conf = yaml.load(f, Loader=yaml.FullLoader)
+                    return conf
+
+                except yaml.YAMLError as exception:
+                    print(exception)
+
+        except FileNotFoundError as exception:
+            print(exception)
+            try:
+                with open(os.path.join(config_dir, 'default-config.yaml')) as f:
+                    try:
+                        conf = yaml.load(f, Loader=yaml.FullLoader)
+                        print("config.yaml cannot be read, loaded settings from default-config.yaml")
+                        return conf
+
+                    except yaml.YAMLError as exception:
+                        print(exception)
+
+            except FileNotFoundError as exception:
+                print(exception)
+
+
 async def channel_poster(channel, files, directory):
     await asyncio.sleep(check_interval)
     if files.set(get_files(directory)) == 1:
@@ -148,36 +176,15 @@ if __name__ == "__main__":
     # load .env
     load_dotenv()
 
-    # create new config and load it
-    post_directory = None
-    while post_directory is None:
-        try:
-            with open('config.yaml') as f:
-                try:
-                    data = yaml.load(f, Loader=yaml.FullLoader)
-                    announce_interval = data["announce_interval"]
-                    check_interval = data["check_interval"]
-                    send_interval = data["send_interval"]
-                    post_directory = data["post_directory"]
-                    best_directory = data["best_directory"]
-                    crsd_directory = data["crsd_directory"]
-                    webui_url = data["webui_url"]
-
-                except yaml.YAMLError as exception:
-                    print(exception)
-
-        except FileNotFoundError as exception:
-            print(exception)
-            default_config = {'post_directory': 'Z:/Neural/RawPictures/islabot',
-                              'best_directory': 'Z:/Neural/SortedPictures/Best',
-                              'crsd_directory': 'Z:/Neural/SortedPictures/Crsd',
-                              'check_interval': 3,
-                              'send_interval': 10,
-                              'announce_interval': 3,
-                              'webui_url': 'http://127.0.0.1:7860'
-                              }
-            with open('config.yaml', 'w') as f:
-                data = yaml.dump(default_config, f)
+    # load config files from 'config' directory
+    data = load_config('config')
+    announce_interval = data["announce_interval"]
+    check_interval = data["check_interval"]
+    send_interval = data["send_interval"]
+    post_directory = data["post_directory"]
+    best_directory = data["best_directory"]
+    crsd_directory = data["crsd_directory"]
+    webui_url = data["webui_url"]
 
     # assign envvars and start bot
     POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
