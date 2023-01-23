@@ -43,18 +43,25 @@ async def gen(ctx, *, arg):
             "image": "data:image/png;base64," + item
         }
         response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info', json=png_payload)
-        print(response2.json().get("info"))
+
+        info = response2.json().get("info")
+        info = info.split("\n")[2].split(',')
+        result = {}
+
+        for x in info:
+            x = x.split(': ')
+            x[0] = x[0].replace(" ", "")
+            result[x[0]] = x[1]
 
         pnginfo = PngImagePlugin.PngInfo()
         pnginfo.add_text("parameters", response2.json().get("info"))
 
-        if prompt["seed"] == -1:
-            seed = "R"
-        else:
-            seed = prompt["seed"]
+        seed = result["Seed"]
+        sampler = result["Sampler"]
+        steps = result["Steps"]
+        model_hash = result["Modelhash"]
 
-        post_directory_img = os.path.join(post_directory, f'{index}-{seed}-{prompt["sampler_name"]}-'
-                                                          f'{prompt["steps"]}.png')
+        post_directory_img = os.path.join(post_directory, f'{seed}-{sampler}-{steps}-{model_hash}.png')
         logging.info(f"save new img to {post_directory_img}")
         image.save(post_directory_img, pnginfo=pnginfo)
 
