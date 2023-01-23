@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 import PromptTemplate
 import TracedValue
 
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
 
 def generate(prompt):
