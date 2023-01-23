@@ -161,15 +161,15 @@ async def channel_poster(channel, files, directory):
 async def on_ready():
     post_channel = bot.get_channel(int(POST_CHANNEL_ID))
     best_channel = bot.get_channel(int(BEST_CHANNEL_ID))
-    shit_channel = bot.get_channel(int(SHIT_CHANNEL_ID))
+    crsd_channel = bot.get_channel(int(crsd_CHANNEL_ID))
     post_files = TracedValue.TracedValue(get_files(post_directory))
     best_files = TracedValue.TracedValue(get_files(best_directory))
-    shit_files = TracedValue.TracedValue(get_files(shit_directory))
+    crsd_files = TracedValue.TracedValue(get_files(crsd_directory))
 
     while True:
         await channel_poster(post_channel, post_files, post_directory)
         await channel_poster(best_channel, best_files, best_directory)
-        await channel_poster(shit_channel, shit_files, shit_directory)
+        await channel_poster(crsd_channel, crsd_files, crsd_directory)
 
 
 if __name__ == "__main__":
@@ -189,7 +189,7 @@ if __name__ == "__main__":
                     send_interval = data["send_interval"]
                     post_directory = data["post_directory"]
                     best_directory = data["best_directory"]
-                    shit_directory = data["shit_directory"]
+                    crsd_directory = data["crsd_directory"]
                     webui_url = data["webui_url"]
 
                 except yaml.YAMLError as exception:
@@ -199,7 +199,7 @@ if __name__ == "__main__":
             print(exception)
             default_config = {'post_directory': 'Z:/Neural/RawPictures/islabot',
                               'best_directory': 'Z:/Neural/SortedPictures/Best',
-                              'shit_directory': 'Z:/Neural/SortedPictures/Shit',
+                              'crsd_directory': 'Z:/Neural/SortedPictures/crsd',
                               'check_interval': 3,
                               'send_interval': 10,
                               'announce_interval': 3,
@@ -211,6 +211,6 @@ if __name__ == "__main__":
     # assign envvars and start bot
     POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
     BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
-    SHIT_CHANNEL_ID = os.environ['SHIT_CHANNEL_ID']
+    CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
 
     bot.run(os.environ['DISCORD_API_KEY'])
