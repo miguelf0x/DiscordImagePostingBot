@@ -73,6 +73,7 @@ async def gen(ctx, *, arg):
             "image": "data:image/png;base64," + item
         }
         response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info', json=png_payload)
+        print(response2)
 
         pnginfo = PngImagePlugin.PngInfo()
         pnginfo.add_text("parameters", response2.json().get("info"))
@@ -161,7 +162,7 @@ async def channel_poster(channel, files, directory):
 async def on_ready():
     post_channel = bot.get_channel(int(POST_CHANNEL_ID))
     best_channel = bot.get_channel(int(BEST_CHANNEL_ID))
-    crsd_channel = bot.get_channel(int(crsd_CHANNEL_ID))
+    crsd_channel = bot.get_channel(int(CRSD_CHANNEL_ID))
     post_files = TracedValue.TracedValue(get_files(post_directory))
     best_files = TracedValue.TracedValue(get_files(best_directory))
     crsd_files = TracedValue.TracedValue(get_files(crsd_directory))
