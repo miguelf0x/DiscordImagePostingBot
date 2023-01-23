@@ -65,6 +65,14 @@ def generate(prompt):
         image.save(post_directory_img, pnginfo=pnginfo)
 
 
+@commands.command(aliases=['h', 'commands'])
+async def print_help(ctx):
+    ctx.send("Currently available commands list:\n"
+             "!g (req), !gen (req), !generate (req) : generate image by (req) tags\n"
+             "!prog, !state, !progress : show current task ETA, step and completion %"
+             "!h, !help, !commands : show this help message")
+
+
 @commands.command(aliases=['prog', 'state'])
 async def progress(ctx):
     prog = requests.get(url=f'{webui_url}/sdapi/v1/progress')
@@ -130,8 +138,10 @@ async def channel_poster(channel, files, directory):
         difflen = len(diff)
 
         if difflen != 0:
-            await channel.send(f'Found {difflen} new picture(s). I will post them soon!')
-            await asyncio.sleep(announce_interval)
+
+            if enable_img_announce == 1:
+                await channel.send(f'Found {difflen} new picture(s). I will post them soon!')
+                await asyncio.sleep(announce_interval)
 
             for x in diff:
                 file = f'{directory}/{x}'
@@ -194,6 +204,7 @@ if __name__ == "__main__":
     best_directory = data["best_directory"]
     crsd_directory = data["crsd_directory"]
     webui_url = data["webui_url"]
+    enable_img_announce = data["enable_image_announce"]
 
     # assign envvars and start bot
     POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
