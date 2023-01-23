@@ -199,7 +199,7 @@ if __name__ == "__main__":
             print(exception)
             default_config = {'post_directory': 'Z:/Neural/RawPictures/islabot',
                               'best_directory': 'Z:/Neural/SortedPictures/Best',
-                              'crsd_directory': 'Z:/Neural/SortedPictures/crsd',
+                              'crsd_directory': 'Z:/Neural/SortedPictures/Crsd',
                               'check_interval': 3,
                               'send_interval': 10,
                               'announce_interval': 3,
