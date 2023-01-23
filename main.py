@@ -67,10 +67,10 @@ def generate(prompt):
 
 @commands.command(aliases=['commands', 'help'])
 async def h(ctx):
-    ctx.send("Currently available commands list:\n"
-             "!g (req), !gen (req), !generate (req) : generate image by (req) tags\n"
-             "!prog, !state, !progress : show current task ETA, step and completion %\n"
-             "!h, !help, !commands : show this help message")
+    await ctx.send("Currently available commands list:\n"
+                   "!g (req), !gen (req), !generate (req) : generate image by (req) tags\n"
+                   "!prog, !state, !progress : show current task ETA, step and completion %\n"
+                   "!h, !help, !commands : show this help message")
 
 
 @commands.command(aliases=['prog', 'state'])
