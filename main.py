@@ -21,6 +21,21 @@ bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 
 @bot.command()
+async def state(ctx):
+    progress = requests.get(url=f'{webui_url}/sdapi/v1/progress')
+
+    job_progress = progress.json().get("progress")
+    job_eta = progress.json().get("eta_relative")
+    job_state = progress.json().get("state")
+    job_curr_image = progress.json().get("current_image")
+
+    await ctx.send(f'Progress: {job_progress*100}%\n'
+                   f'Job ETA: {job_eta}\n'
+                   f'State: {job_state}\n'
+                   f'Current img: {job_curr_image}')
+
+
+@bot.command()
 async def gen(ctx, *, arg):
     prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
     prompt["prompt"] = arg
@@ -29,8 +44,8 @@ async def gen(ctx, *, arg):
     response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
 
     if response.status_code > 400:
-        logging.error(response.text)
-        return
+        await ctx.send(response.text)
+        return 228
 
     r = response.json()
 
