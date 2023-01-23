@@ -14,45 +14,15 @@ from PIL import Image, PngImagePlugin
 from discord.ext import commands
 from dotenv import load_dotenv
 
+import PromptTemplate
 import TracedValue
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
-NEGATIVE_PROMPT_4X = "((((ugly)))), "
-NEGATIVE_PROMPT_3X = "(((duplicate))), (((mutation))), (((deformed))), (((bad proportions))), (((disfigured))), " \
-                     "(((extra arms))), (((extra legs))), (((long neck))), (((worst quality))), "
-NEGATIVE_PROMPT_2X = "((morbid)), ((mutilated)), ((poorly drawn hands)), ((bad anatomy)), ((extra limbs)), " \
-                     "((out of frame)), ((missing arms)), ((missing legs)), "
-NEGATIVE_PROMPT_1X = "(malformed limbs), (fused fingers), (too many fingers), (watermark), "
-NEGATIVE_PROMPT_0X = "extra fingers, mutated hands, blurry, cloned face, gross proportions, jpeg artifacts, " \
-                     "signature, username"
-
-FINAL_NEGATIVE_PROMPT = NEGATIVE_PROMPT_4X + NEGATIVE_PROMPT_3X + NEGATIVE_PROMPT_2X + NEGATIVE_PROMPT_1X + \
-                        NEGATIVE_PROMPT_0X
-
-PROMPT_TEMPLATE = {
-    "prompt": "1girl, standing, blue_hair",
-    "negative_prompt": FINAL_NEGATIVE_PROMPT,
-    "steps": 40,
-    "width": 512,
-    "height": 512,
-    "cfg_scale": 4,
-    "sampler_name": "Euler",
-    "seed": -1,
-    "enable_hr": False,
-    "hr_scale": 2,
-    "denoising_strength": 0.7,
-    "hr_upscaler": "Latent",
-    "hr_second_pass_steps": 0,
-    "hr_resize_x": 0,
-    "hr_resize_y": 0,
-    "batch_size": 1
-}
-
 
 @bot.command()
 async def gen(ctx, *, arg):
-    prompt = dict(PROMPT_TEMPLATE)
+    prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
     prompt["prompt"] = arg
 
     logging.info(f"start task ")
@@ -73,7 +43,7 @@ async def gen(ctx, *, arg):
             "image": "data:image/png;base64," + item
         }
         response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info', json=png_payload)
-        print(response2)
+        print(response2.json().get("info"))
 
         pnginfo = PngImagePlugin.PngInfo()
         pnginfo.add_text("parameters", response2.json().get("info"))
