@@ -1,4 +1,7 @@
 announce_interval: 3
-check_interval: 20
-directory: Z:/Neural/SortedPictures
+check_interval: 2
 send_interval: 10
+post_directory: Z:/Neural/RawPictures/islabot
+best_directory: Z:/Neural/SortedPictures/Best
+shit_directory: Z:/Neural/SortedPictures/Shit
+
