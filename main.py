@@ -65,11 +65,11 @@ def generate(prompt):
         image.save(post_directory_img, pnginfo=pnginfo)
 
 
-@commands.command(aliases=['h', 'help'])
-async def commands(ctx):
+@commands.command(aliases=['commands', 'help'])
+async def h(ctx):
     ctx.send("Currently available commands list:\n"
              "!g (req), !gen (req), !generate (req) : generate image by (req) tags\n"
-             "!prog, !state, !progress : show current task ETA, step and completion %"
+             "!prog, !state, !progress : show current task ETA, step and completion %\n"
              "!h, !help, !commands : show this help message")
 
 
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
 
     # noinspection PyTypeChecker
-    bot.add_command(commands)
+    bot.add_command(h)
 
     # noinspection PyTypeChecker
     bot.add_command(progress)
