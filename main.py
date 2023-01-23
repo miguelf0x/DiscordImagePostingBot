@@ -9,10 +9,10 @@ import logging
 import requests
 import io
 import base64
+import TracedValue
 from PIL import Image, PngImagePlugin
 from discord.ext import commands
 from dotenv import load_dotenv
-
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
@@ -29,43 +29,23 @@ FINAL_NEGATIVE_PROMPT = NEGATIVE_PROMPT_4X + NEGATIVE_PROMPT_3X + NEGATIVE_PROMP
                         NEGATIVE_PROMPT_0X
 
 PROMPT_TEMPLATE = {
-        "prompt": "1girl, standing, blue_hair",
-        "negative_prompt": FINAL_NEGATIVE_PROMPT,
-        "steps": 40,
-        "width": 512,
-        "height": 512,
-        "cfg_scale": 4,
-        "sampler_name": "Euler",
-        "seed": -1,
-        "enable_hr": False,
-        "hr_scale": 2,
-        "denoising_strength": 0.7,
-        "hr_upscaler": "Latent",
-        "hr_second_pass_steps": 0,
-        "hr_resize_x": 0,
-        "hr_resize_y": 0,
-        "batch_size": 1
-    }
-
-
-class TracedValue:
-    def __init__(self, value):
-        self.prev_value = None
-        self.cur_value = value
-
-    def set(self, value):
-        if self.cur_value != value:
-            self.prev_value = self.cur_value
-            self.cur_value = value
-            return 1
-        else:
-            return 0
-
-    def get(self):
-        return self.cur_value
-
-    def get_diff(self):
-        return self.cur_value - self.prev_value
+    "prompt": "1girl, standing, blue_hair",
+    "negative_prompt": FINAL_NEGATIVE_PROMPT,
+    "steps": 40,
+    "width": 512,
+    "height": 512,
+    "cfg_scale": 4,
+    "sampler_name": "Euler",
+    "seed": -1,
+    "enable_hr": False,
+    "hr_scale": 2,
+    "denoising_strength": 0.7,
+    "hr_upscaler": "Latent",
+    "hr_second_pass_steps": 0,
+    "hr_resize_x": 0,
+    "hr_resize_y": 0,
+    "batch_size": 1
+}
 
 
 @bot.command()
@@ -177,13 +157,12 @@ async def channel_poster(channel, files, directory):
 
 @bot.event
 async def on_ready():
-
     post_channel = bot.get_channel(int(POST_CHANNEL_ID))
     best_channel = bot.get_channel(int(BEST_CHANNEL_ID))
     shit_channel = bot.get_channel(int(SHIT_CHANNEL_ID))
-    post_files = TracedValue(get_files(post_directory))
-    best_files = TracedValue(get_files(best_directory))
-    shit_files = TracedValue(get_files(shit_directory))
+    post_files = TracedValue.TracedValue(get_files(post_directory))
+    best_files = TracedValue.TracedValue(get_files(best_directory))
+    shit_files = TracedValue.TracedValue(get_files(shit_directory))
 
     while True:
         await channel_poster(post_channel, post_files, post_directory)
@@ -219,11 +198,11 @@ if __name__ == "__main__":
             default_config = {'post_directory': 'Z:/Neural/RawPictures/islabot',
                               'best_directory': 'Z:/Neural/SortedPictures/Best',
                               'shit_directory': 'Z:/Neural/SortedPictures/Shit',
-                              'check_interval': 20,
+                              'check_interval': 3,
                               'send_interval': 10,
                               'announce_interval': 3,
                               'webui_url': 'http://127.0.0.1:7860'
-            }
+                              }
             with open('config.yaml', 'w') as f:
                 data = yaml.dump(default_config, f)
 
@@ -231,4 +210,5 @@ if __name__ == "__main__":
     POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
     BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
     SHIT_CHANNEL_ID = os.environ['SHIT_CHANNEL_ID']
+
     bot.run(os.environ['DISCORD_API_KEY'])

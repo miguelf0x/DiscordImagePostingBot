@@ -1,5 +1,5 @@
 announce_interval: 3
-check_interval: 2
+check_interval: 3
 send_interval: 10
 post_directory: Z:/Neural/RawPictures/islabot
 best_directory: Z:/Neural/SortedPictures/Best
