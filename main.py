@@ -6,6 +6,7 @@ import base64
 import io
 import logging
 import os
+import threading
 
 import discord
 import requests
@@ -20,31 +21,14 @@ import TracedValue
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 
-@bot.command()
-async def state(ctx):
-    progress = requests.get(url=f'{webui_url}/sdapi/v1/progress')
-
-    job_progress = progress.json().get("progress")
-    job_eta = progress.json().get("eta_relative")
-    job_state = progress.json().get("state")
-    job_curr_image = progress.json().get("current_image")
-
-    await ctx.send(f'Progress: {job_progress*100}%\n'
-                   f'Job ETA: {job_eta}\n'
-                   f'State: {job_state}\n'
-                   f'Current img: {job_curr_image}')
-
-
-@bot.command()
-async def gen(ctx, *, arg):
-    prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
-    prompt["prompt"] = arg
+def generate(prompt):
 
     logging.info(f"start task ")
     response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
 
     if response.status_code > 400:
-        await ctx.send(response.text)
+        print("git gud")
+        print(response.text)
         return 228
 
     r = response.json()
@@ -80,7 +64,27 @@ async def gen(ctx, *, arg):
         logging.info(f"save new img to {post_directory_img}")
         image.save(post_directory_img, pnginfo=pnginfo)
 
-    await ctx.send("Yekekek")
+
+@commands.command(aliases=['prog', 'state'])
+async def progress(ctx):
+    prog = requests.get(url=f'{webui_url}/sdapi/v1/progress')
+
+    job_progress = prog.json().get("progress")
+    job_eta = prog.json().get("eta_relative")
+    job_state = prog.json().get("state")
+
+    await ctx.send(f'Progress: {round(job_progress*100, 2)}%\n'
+                   f'Job ETA: {round(job_eta)}s\n'
+                   f''
+                   f'Step: {job_state["sampling_step"]} of {job_state["sampling_steps"]}\n')
+
+
+@commands.command(aliases=['g', 'generate'])
+async def gen(ctx, *, arg):
+    prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
+    prompt["prompt"] = arg
+    gen_thread = threading.Thread(target=generate, args=(prompt,))
+    gen_thread.start()
 
 
 def get_files(source):
@@ -142,26 +146,10 @@ async def channel_poster(channel, files, directory):
 
                 if len(name) > 1:
 
-                    try:
-                        if len(name[2]) > 19:
-                            sampler = 'unknown'
-                        else:
-                            sampler = name[2]
-                    except IndexError as sampler_index_exception:
-                        print(sampler_index_exception)
-                        sampler = 'unknown'
-
-                    try:
-                        if len(name[4]) > 8:
-                            modelhash = 'unknown'
-                        else:
-                            modelhash = name[4]
-                    except IndexError as index_exception:
-                        print(index_exception)
-                        modelhash = 'unknown'
-
-                    steps = name[3]
-                    seed = name[1]
+                    seed = name[0]
+                    sampler = name[1]
+                    steps = name[2]
+                    modelhash = name[3].split('.')[0]
 
                 else:
 
@@ -211,5 +199,11 @@ if __name__ == "__main__":
     POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
     BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
     CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
+
+    # noinspection PyTypeChecker
+    bot.add_command(progress)
+
+    # noinspection PyTypeChecker
+    bot.add_command(gen)
 
     bot.run(os.environ['DISCORD_API_KEY'])
