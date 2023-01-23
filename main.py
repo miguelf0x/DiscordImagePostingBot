@@ -65,8 +65,8 @@ def generate(prompt):
         image.save(post_directory_img, pnginfo=pnginfo)
 
 
-@commands.command(aliases=['h', 'commands'])
-async def print_help(ctx):
+@commands.command(aliases=['h', 'help'])
+async def commands(ctx):
     ctx.send("Currently available commands list:\n"
              "!g (req), !gen (req), !generate (req) : generate image by (req) tags\n"
              "!prog, !state, !progress : show current task ETA, step and completion %"
@@ -210,6 +210,9 @@ if __name__ == "__main__":
     POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
     BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
     CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
+
+    # noinspection PyTypeChecker
+    bot.add_command(commands)
 
     # noinspection PyTypeChecker
     bot.add_command(progress)
