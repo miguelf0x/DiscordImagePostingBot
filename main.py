@@ -72,11 +72,22 @@ def get_files(source):
 
 def load_config(config_dir):
 
-    while post_directory is None:
+    try:
+        with open(os.path.join(config_dir, 'config.yaml')) as f:
+            try:
+                conf = yaml.load(f, Loader=yaml.FullLoader)
+                return conf
+
+            except yaml.YAMLError as exception:
+                print(exception)
+
+    except FileNotFoundError as exception:
+        print(exception)
         try:
-            with open(os.path.join(config_dir, 'config.yaml')) as f:
+            with open(os.path.join(config_dir, 'default-config.yaml')) as f:
                 try:
                     conf = yaml.load(f, Loader=yaml.FullLoader)
+                    print("config.yaml cannot be read, loaded settings from default-config.yaml")
                     return conf
 
                 except yaml.YAMLError as exception:
@@ -84,18 +95,6 @@ def load_config(config_dir):
 
         except FileNotFoundError as exception:
             print(exception)
-            try:
-                with open(os.path.join(config_dir, 'default-config.yaml')) as f:
-                    try:
-                        conf = yaml.load(f, Loader=yaml.FullLoader)
-                        print("config.yaml cannot be read, loaded settings from default-config.yaml")
-                        return conf
-
-                    except yaml.YAMLError as exception:
-                        print(exception)
-
-            except FileNotFoundError as exception:
-                print(exception)
 
 
 async def channel_poster(channel, files, directory):
