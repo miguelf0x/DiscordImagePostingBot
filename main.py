@@ -2,17 +2,19 @@
 # github.com/miguelf0x
 
 import asyncio
-import os
-import discord
-import yaml
-import logging
-import requests
-import io
 import base64
-import TracedValue
+import io
+import logging
+import os
+
+import discord
+import requests
+import yaml
 from PIL import Image, PngImagePlugin
 from discord.ext import commands
 from dotenv import load_dotenv
+
+import TracedValue
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
