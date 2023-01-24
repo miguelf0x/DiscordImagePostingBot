@@ -13,7 +13,7 @@ NEGATIVE_PROMPT_CONCAT = NEGATIVE_PROMPT_4X + NEGATIVE_PROMPT_3X + NEGATIVE_PROM
 PROMPT_TEMPLATE = {
     "prompt": "1girl, standing, blue_hair",
     "negative_prompt": NEGATIVE_PROMPT_CONCAT,
-    "steps": 40,
+    "steps": 60,
     "width": 512,
     "height": 512,
     "cfg_scale": 4,
