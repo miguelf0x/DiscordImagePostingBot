@@ -5,7 +5,7 @@ import io
 from PIL import Image, PngImagePlugin
 
 
-def get_progress(ctx, webui_url):
+async def get_progress(ctx, webui_url):
     prog = requests.get(url=f'{webui_url}/sdapi/v1/progress')
 
     job_progress = prog.json().get("progress")
@@ -18,7 +18,7 @@ def get_progress(ctx, webui_url):
                    f'Step: {job_state["sampling_step"]} of {job_state["sampling_steps"]}\n')
 
 
-def generate(prompt, webui_url, post_directory):
+def post_generate(prompt, webui_url, post_directory):
     response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
 
     if response.status_code > 400:
@@ -57,3 +57,59 @@ def generate(prompt, webui_url, post_directory):
 
         post_directory_img = os.path.join(post_directory, f'{seed}-{sampler}-{steps}-{model_hash}.png')
         image.save(post_directory_img, pnginfo=pnginfo)
+
+
+async def post_refresh_ckpt(ctx, webui_url):
+    response = requests.post(url=f'{webui_url}/sdapi/v1/refresh-checkpoints')
+    if response.status_code > 400:
+        print("git gud")
+        print(response.text)
+        return 228
+    else:
+        await ctx.send("Models list refreshed")
+
+
+async def get_sd_models(ctx, webui_url, show_list):
+    models = requests.get(url=f'{webui_url}/sdapi/v1/sd-models')
+    models = models.json()
+    if show_list == "1":
+        models_msg = ""
+        counter = 0
+        print(models)
+        for i in models:
+            counter += 1
+            models_msg += f"[{counter}] Model: `{i['model_name']}`, Hash: `{i['hash']}`\n"
+        message = f"Found {counter} models:\n" + models_msg
+        await ctx.send(message)
+    return models
+
+
+async def find_model_by_hash(ctx, webui_url, modelhash):
+    models = requests.get(url=f'{webui_url}/sdapi/v1/sd-models')
+    models = models.json()
+    for i in models:
+        if modelhash == i["hash"]:
+            await ctx.send(f'Found model `{i["model_name"]}` with hash `{i["hash"]}`')
+            return
+    await ctx.send(f'No models found with hash `{modelhash}`')
+
+
+# TODO: NEED CACHING RESPONSE AFTER get_sd_models()
+async def select_model_by_arg(ctx, webui_url, argument):
+    resp = await get_sd_models(ctx, webui_url, 0)
+    option_payload = {}
+    if len(argument) > 2:
+        for i in resp:
+            if i["hash"] == argument:
+                option_payload = {"sd_model_checkpoint": i["title"]}
+    else:
+        option_payload = {"sd_model_checkpoint": resp[int(argument)-1]["title"]}
+
+    post_result = requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload)
+    if post_result.status_code > 400:
+        print("git gud")
+        print(post_result.text)
+        return 228
+    else:
+        await ctx.send("Model selected")
+

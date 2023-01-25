@@ -18,8 +18,8 @@ import WebuiRequests
 bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
 
-@commands.command(aliases=['h', 'help'])
-async def commands(ctx):
+@commands.command(aliases=['h', 'help', 'commands'])
+async def man(ctx):
     await ctx.send("Currently available commands list:\n"
                    "$g (req), $gen (req), $generate (req) - generate image by (req) tags\n"
                    "$prog, $state, $progress - show current task ETA, step and completion %\n"
@@ -28,15 +28,36 @@ async def commands(ctx):
 
 @commands.command(aliases=['prog', 'state'])
 async def progress(ctx):
-    WebuiRequests.get_progress(ctx, webui_url)
+    await WebuiRequests.get_progress(ctx, webui_url)
 
 
 @commands.command(aliases=['g', 'generate'])
 async def gen(ctx, *, arg):
     prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
     prompt["prompt"] = arg
-    gen_thread = threading.Thread(target=WebuiRequests.generate, args=(prompt, webui_url, post_directory))
+    gen_thread = threading.Thread(target=WebuiRequests.post_generate, args=(prompt, webui_url, post_directory))
     gen_thread.start()
+
+
+@commands.command(aliases=['ref', 'refresh'])
+async def refresh_ckpt(ctx):
+    await WebuiRequests.post_refresh_ckpt(ctx, webui_url)
+
+
+@commands.command(aliases=['models', 'list_models'])
+async def show_ckpt(ctx):
+    await WebuiRequests.get_sd_models(ctx, webui_url, "1")
+
+
+
+@commands.command(aliases=['find_model', 'find'])
+async def find_ckpt(ctx, arg):
+    await WebuiRequests.find_model_by_hash(ctx, webui_url, arg)
+
+
+@commands.command(aliases=['set_model', 'set'])
+async def set_ckpt(ctx, arg):
+    await WebuiRequests.select_model_by_arg(ctx, webui_url, arg)
 
 
 def get_files(source):
@@ -158,12 +179,24 @@ if __name__ == "__main__":
     bot.remove_command("help")
 
     # noinspection PyTypeChecker
-    bot.add_command(commands)
+    bot.add_command(man)
 
     # noinspection PyTypeChecker
     bot.add_command(progress)
 
     # noinspection PyTypeChecker
     bot.add_command(gen)
+
+    # noinspection PyTypeChecker
+    bot.add_command(refresh_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(show_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(find_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(set_ckpt)
 
     bot.run(os.environ['DISCORD_API_KEY'])
