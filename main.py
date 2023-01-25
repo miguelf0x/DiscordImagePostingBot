@@ -18,8 +18,8 @@ import WebuiRequests
 bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
 
-@commands.command(aliases=['commands', 'help'])
-async def h(ctx):
+@commands.command(aliases=['h', 'help'])
+async def commands(ctx):
     await ctx.send("Currently available commands list:\n"
                    "$g (req), $gen (req), $generate (req) - generate image by (req) tags\n"
                    "$prog, $state, $progress - show current task ETA, step and completion %\n"
@@ -155,9 +155,10 @@ if __name__ == "__main__":
     BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
     CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
 
-    # noinspection PyTypeChecker
     bot.remove_command("help")
-    bot.add_command(h)
+
+    # noinspection PyTypeChecker
+    bot.add_command(commands)
 
     # noinspection PyTypeChecker
     bot.add_command(progress)
