@@ -34,7 +34,23 @@ async def progress(ctx):
 @commands.command(aliases=['g', 'generate'])
 async def gen(ctx, *, arg):
     prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
-    prompt["prompt"] = arg
+    trimmed = arg.split(",", 1)
+    steps = 0
+    try:
+        steps = int(trimmed[0])
+    except TypeError:
+        print("Невозможно преобразовать тип данных!")
+        print(steps)
+    except ValueError:
+        print(steps)
+        print("Данное значение не поддерживается!")
+
+    if steps != 0:
+        prompt["steps"] = str(steps)
+        prompt["prompt"] = trimmed[1]
+    else:
+        prompt["prompt"] = arg
+
     gen_thread = threading.Thread(target=WebuiRequests.post_generate, args=(prompt, webui_url, post_directory))
     gen_thread.start()
 
