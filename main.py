@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import PromptTemplate
 import TracedValue
 import WebuiRequests
+import SafeTypes
 
 bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
@@ -34,22 +35,23 @@ async def progress(ctx):
 @commands.command(aliases=['g', 'generate'])
 async def gen(ctx, *, arg):
     prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
-    trimmed = arg.split(",", 1)
-    steps = 0
-    try:
-        steps = int(trimmed[0])
-    except TypeError:
-        print("Невозможно преобразовать тип данных!")
-        print(steps)
-    except ValueError:
-        print(steps)
-        print("Данное значение не поддерживается!")
+    trimmed = arg.split(",", 3)
 
-    if steps != 0:
+    steps = SafeTypes.safe_cast(trimmed[0], "int")
+    width = SafeTypes.safe_cast(trimmed[1], "int")
+    height = SafeTypes.safe_cast(trimmed[2], "int")
+
+    if steps > 0 and width > 0 and height > 0:
         prompt["steps"] = str(steps)
-        prompt["prompt"] = trimmed[1]
+        prompt["width"] = str(width)
+        prompt["height"] = str(height)
+        prompt["prompt"] = str(trimmed[3])
+    elif steps > 0:
+        prompt["prompt"] = str(trimmed[1])+str(trimmed[2])+str(trimmed[3])
+        prompt["steps"] = str(steps)
     else:
-        prompt["prompt"] = arg
+        prompt["steps"] = arg
+
 
     gen_thread = threading.Thread(target=WebuiRequests.post_generate, args=(prompt, webui_url, post_directory))
     gen_thread.start()
