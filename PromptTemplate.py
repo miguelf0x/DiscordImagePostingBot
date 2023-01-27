@@ -16,7 +16,7 @@ PROMPT_TEMPLATE = {
     "steps": 60,
     "width": 512,
     "height": 512,
-    "cfg_scale": 4,
+    "cfg_scale": 5,
     "sampler_name": "Euler",
     "seed": -1,
     "enable_hr": False,
