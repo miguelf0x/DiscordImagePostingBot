@@ -22,7 +22,7 @@ bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
 @commands.command(aliases=['h', 'help', 'commands'])
 async def man(ctx):
-    await ctx.message.channel.send(embed=UserHelp.main_help_embed())
+    await ctx.send(embed=UserInteraction.main_help_embed())
 
 
 @commands.command(aliases=['prog', 'state'])
