@@ -28,3 +28,4 @@ def main_help_embed():
         description=HELP_TEXT,
     )
     return embedding
+

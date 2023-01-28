@@ -7,6 +7,14 @@ from PIL import Image, PngImagePlugin
 import UserInteraction
 
 
+async def user_interrupt(ctx, webui_url):
+    requests.post(url=f'{webui_url}/sdapi/v1/interrupt')
+    embedding = UserInteraction.EMBED
+    embedding.title = 'Success!'
+    embedding.description = 'Image generating interrupted.'
+    await ctx.send(embed=embedding)
+
+
 async def get_progress(ctx, webui_url):
     prog = requests.get(url=f'{webui_url}/sdapi/v1/progress')
 

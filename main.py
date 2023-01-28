@@ -31,12 +31,12 @@ async def progress(ctx):
 
 @commands.command(aliases=['g', 'generate'])
 async def gen(ctx, *, arg):
-    PromptParser.single_gen(ctx, arg, webui_url, post_directory)
+    PromptParser.image_gen(ctx, arg, webui_url, post_directory)
 
 
 @commands.command(aliases=['b', 'batch', 'mass'])
 async def batch_gen(ctx, *, arg):
-    PromptParser.multiple_gen(ctx, arg, webui_url, post_directory)
+    PromptParser.mass_gen(ctx, arg, webui_url, post_directory)
 
 
 @commands.command(aliases=['ref', 'refresh'])
@@ -57,6 +57,21 @@ async def find_ckpt(ctx, arg):
 @commands.command(aliases=['set_model', 'set'])
 async def set_ckpt(ctx, arg):
     await WebuiRequests.select_model_by_arg(ctx, webui_url, arg)
+
+
+@set_ckpt.error
+async def set_ckpt_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            embedding = UserInteraction.EMBED
+            embedding.title = 'Oops!'
+            embedding.description = f'Command argument missing!'
+            await ctx.send(embed=embedding)
+
+
+@commands.command(aliases=['stop', 'halt'])
+async def interrupt(ctx):
+    await WebuiRequests.user_interrupt(ctx, webui_url)
 
 
 def get_files(source):
@@ -179,5 +194,8 @@ if __name__ == "__main__":
 
     # noinspection PyTypeChecker
     bot.add_command(set_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(interrupt)
 
     bot.run(os.environ['DISCORD_API_KEY'])
