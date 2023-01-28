@@ -18,7 +18,8 @@ async def get_progress(ctx, webui_url):
     embedding.title = 'Current task state'
     embedding.description = (f'Progress: `{round(job_progress*100, 2)}%`\n'
                              f'Job ETA: `{round(job_eta)}s`\n'
-                             f'Step: `{job_state["sampling_step"]} of {job_state["sampling_steps"]}`')
+                             f'Step: `{job_state["sampling_step"]} of '
+                             f'{job_state["sampling_steps"]}`')
     await ctx.send(embed=embedding)
 
 
@@ -40,7 +41,8 @@ def post_generate(prompt, webui_url, post_directory):
         png_payload = {
             "image": "data:image/png;base64," + item
         }
-        response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info', json=png_payload)
+        response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info',
+                                  json=png_payload)
 
         info = response2.json().get("info")
         info = info.split("\n")[2].split(',')
@@ -59,7 +61,8 @@ def post_generate(prompt, webui_url, post_directory):
         steps = result["Steps"]
         model_hash = result["Modelhash"]
 
-        post_directory_img = os.path.join(post_directory, f'{seed}-{sampler}-{steps}-{model_hash}.png')
+        post_directory_img = os.path.join(post_directory,
+                                          f'{seed}-{sampler}-{steps}-{model_hash}.png')
         image.save(post_directory_img, pnginfo=pnginfo)
 
 
@@ -90,7 +93,8 @@ async def get_sd_models(ctx, webui_url, show_list):
         print(models)
         for i in models:
             counter += 1
-            models_msg += f"[{counter}] Checkpoint: `{i['model_name']}`, Hash: `{i['hash']}`\n"
+            models_msg += f"[{counter}] Checkpoint: `{i['model_name']}`, " \
+                          f"Hash: `{i['hash']}`\n"
         embedding.description = f"Found {counter} models:\n" + models_msg
         await ctx.send(embed=embedding)
     return models
@@ -103,7 +107,8 @@ async def find_model_by_hash(ctx, webui_url, modelhash):
     for i in models:
         if modelhash == i["hash"]:
             embedding.title = 'Success!'
-            embedding.description = f'Found model `{i["model_name"]}` with hash `{i["hash"]}`'
+            embedding.description = f'Found model `{i["model_name"]}` ' \
+                                    f'with hash `{i["hash"]}`'
             await ctx.send(embed=embedding)
             return
 
@@ -127,16 +132,17 @@ async def select_model_by_arg(ctx, webui_url, argument):
         model_title = resp[int(argument)-1]["title"]
         option_payload = {"sd_model_checkpoint": model_title}
 
-    post_result = requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload)
+    post_result = requests.post(url=f'{webui_url}/sdapi/v1/options',
+                                json=option_payload)
     if post_result.status_code > 400:
         print("git gud")
         print(post_result.text)
         embedding.title = 'Failed!'
-        embedding.description = f'Selecting model failed with: {post_result.text}.'
+        embedding.description = f'Selecting model failed with: ' \
+                                f'{post_result.text}.'
         await ctx.send(embed=embedding)
         return 228
     else:
         embedding.title = 'Success!'
         embedding.description = f'Model `{model_title}` has been selected.'
         await ctx.send(embed=embedding)
-

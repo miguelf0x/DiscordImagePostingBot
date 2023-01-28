@@ -53,7 +53,8 @@ async def gen(ctx, *, arg):
         else:
             prompt["steps"] = arg
 
-        gen_thread = threading.Thread(target=WebuiRequests.post_generate, args=(prompt, webui_url, post_directory))
+        gen_thread = threading.Thread(target=WebuiRequests.post_generate,
+                                      args=(prompt, webui_url, post_directory))
         gen_thread.start()
 
     else:
@@ -92,7 +93,8 @@ def get_files(source):
 def load_config(config_dir):
 
     try:
-        with open(os.path.join(config_dir, 'config.yaml')) as f:
+        custom_cfg = os.path.join(config_dir, 'config.yaml')
+        with open(custom_cfg) as f:
             try:
                 conf = yaml.load(f, Loader=yaml.FullLoader)
                 return conf
@@ -102,8 +104,9 @@ def load_config(config_dir):
 
     except FileNotFoundError as exception:
         print(exception)
+        default_cfg = os.path.join(config_dir, 'default-config.yaml')
         try:
-            with open(os.path.join(config_dir, 'default-config.yaml')) as f:
+            with open(default_cfg) as f:
                 try:
                     conf = yaml.load(f, Loader=yaml.FullLoader)
                     print("config.yaml cannot be read, loaded settings from default-config.yaml")
