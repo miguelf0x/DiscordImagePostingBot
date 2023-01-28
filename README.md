@@ -1,5 +1,7 @@
 # Discord Image Posting Bot
 
+<a href="https://codeclimate.com/github/miguelf0x/DiscordImagePostingBot/maintainability"><img src="https://api.codeclimate.com/v1/badges/1351c9d4bc079e3137e0/maintainability" /></a>
+
 This tiny bot is designed for posting newly added images in specified directory
 
 ## Environment Variables
