@@ -23,12 +23,17 @@ async def get_progress(ctx, webui_url):
     await ctx.send(embed=embedding)
 
 
-def post_generate(prompt, webui_url, post_directory):
+def post_generate(ctx, prompt, webui_url, post_directory):
     response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
 
     if response.status_code > 400:
         print("git gud")
         print(response.text)
+        embedding = UserInteraction.EMBED
+        embedding.title = 'Failed!'
+        embedding.description = f'Generating image failed with: ' \
+                                f'{response.text}.'
+        ctx.send(embed=embedding)
         return 228
 
     r = response.json()

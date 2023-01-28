@@ -54,7 +54,7 @@ async def gen(ctx, *, arg):
             prompt["steps"] = arg
 
         gen_thread = threading.Thread(target=WebuiRequests.post_generate,
-                                      args=(prompt, webui_url, post_directory))
+                                      args=(ctx, prompt, webui_url, post_directory))
         gen_thread.start()
 
     else:
@@ -156,10 +156,16 @@ async def channel_poster(channel, files, directory):
                     steps = 'unknown'
                     seed = 'unknown'
 
-                await channel.send(f'Model hash: {modelhash}, Sampler: {sampler}, Steps: {steps}, '
-                                   f'Seed: {seed}\nResolution: {width}x{height} [AR: {round(width / height, 3)}]',
-                                   file=discord.File(file))
+                embedding = UserInteraction.EMBED
+                embedding.title = 'Generated image'
+                embedding.description = (f'Model hash: `{modelhash}`, Sampler: `{sampler}`\n'
+                                         f'Steps: `{steps}`, Seed: `{seed}`\n'
+                                         f'Resolution: `{width}x{height} '
+                                         f'[AR: {round(width / height, 3)}]`')
+                image = discord.File(file, filename=x)
+                embedding.set_image(url="attachment://" + x)
 
+                await channel.send(file=image, embed=embedding)
                 await asyncio.sleep(send_interval)
 
 
