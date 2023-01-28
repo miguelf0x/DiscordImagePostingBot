@@ -4,6 +4,8 @@ import base64
 import io
 from PIL import Image, PngImagePlugin
 
+import UserInteraction
+
 
 async def get_progress(ctx, webui_url):
     prog = requests.get(url=f'{webui_url}/sdapi/v1/progress')
@@ -12,10 +14,12 @@ async def get_progress(ctx, webui_url):
     job_eta = prog.json().get("eta_relative")
     job_state = prog.json().get("state")
 
-    await ctx.send(f'Progress: {round(job_progress*100, 2)}%\n'
-                   f'Job ETA: {round(job_eta)}s\n'
-                   f''
-                   f'Step: {job_state["sampling_step"]} of {job_state["sampling_steps"]}\n')
+    embedding = UserInteraction.EMBED
+    embedding.title = 'Current task state'
+    embedding.description = (f'Progress: `{round(job_progress*100, 2)}%`\n'
+                             f'Job ETA: `{round(job_eta)}s`\n'
+                             f'Step: `{job_state["sampling_step"]} of {job_state["sampling_steps"]}`')
+    await ctx.send(embed=embedding)
 
 
 def post_generate(prompt, webui_url, post_directory):
@@ -61,55 +65,78 @@ def post_generate(prompt, webui_url, post_directory):
 
 async def post_refresh_ckpt(ctx, webui_url):
     response = requests.post(url=f'{webui_url}/sdapi/v1/refresh-checkpoints')
+    embedding = UserInteraction.EMBED
     if response.status_code > 400:
         print("git gud")
         print(response.text)
+        embedding.title = 'Failed!'
+        embedding.description = f'Refresh failed with: {response.text}.'
+        await ctx.send(embed=embedding)
         return 228
     else:
-        await ctx.send("Models list refreshed")
+        embedding.title = 'Success!'
+        embedding.description = 'Checkpoints list refreshed'
+        await ctx.send(embed=embedding)
 
 
 async def get_sd_models(ctx, webui_url, show_list):
     models = requests.get(url=f'{webui_url}/sdapi/v1/sd-models')
     models = models.json()
+    embedding = UserInteraction.EMBED
     if show_list == "1":
+        embedding.title = 'Available models list'
         models_msg = ""
         counter = 0
         print(models)
         for i in models:
             counter += 1
-            models_msg += f"[{counter}] Model: `{i['model_name']}`, Hash: `{i['hash']}`\n"
-        message = f"Found {counter} models:\n" + models_msg
-        await ctx.send(message)
+            models_msg += f"[{counter}] Checkpoint: `{i['model_name']}`, Hash: `{i['hash']}`\n"
+        embedding.description = f"Found {counter} models:\n" + models_msg
+        await ctx.send(embed=embedding)
     return models
 
 
 async def find_model_by_hash(ctx, webui_url, modelhash):
     models = requests.get(url=f'{webui_url}/sdapi/v1/sd-models')
     models = models.json()
+    embedding = UserInteraction.EMBED
     for i in models:
         if modelhash == i["hash"]:
-            await ctx.send(f'Found model `{i["model_name"]}` with hash `{i["hash"]}`')
+            embedding.title = 'Success!'
+            embedding.description = f'Found model `{i["model_name"]}` with hash `{i["hash"]}`'
+            await ctx.send(embed=embedding)
             return
-    await ctx.send(f'No models found with hash `{modelhash}`')
+
+    embedding.title = 'Failed!'
+    embedding.description = f'No checkpoints found with hash {modelhash}.'
+    await ctx.send(embed=embedding)
 
 
 # TODO: NEED CACHING RESPONSE AFTER get_sd_models()
 async def select_model_by_arg(ctx, webui_url, argument):
     resp = await get_sd_models(ctx, webui_url, 0)
     option_payload = {}
+    model_title = ""
+    embedding = UserInteraction.EMBED
     if len(argument) > 2:
         for i in resp:
             if i["hash"] == argument:
-                option_payload = {"sd_model_checkpoint": i["title"]}
+                model_title = i["title"]
+                option_payload = {"sd_model_checkpoint": model_title}
     else:
-        option_payload = {"sd_model_checkpoint": resp[int(argument)-1]["title"]}
+        model_title = resp[int(argument)-1]["title"]
+        option_payload = {"sd_model_checkpoint": model_title}
 
     post_result = requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload)
     if post_result.status_code > 400:
         print("git gud")
         print(post_result.text)
+        embedding.title = 'Failed!'
+        embedding.description = f'Selecting model failed with: {post_result.text}.'
+        await ctx.send(embed=embedding)
         return 228
     else:
-        await ctx.send("Model selected")
+        embedding.title = 'Success!'
+        embedding.description = f'Model `{model_title}` has been selected.'
+        await ctx.send(embed=embedding)
 

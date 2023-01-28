@@ -15,16 +15,14 @@ import PromptTemplate
 import TracedValue
 import WebuiRequests
 import SafeTypes
+import UserInteraction
 
 bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
 
 @commands.command(aliases=['h', 'help', 'commands'])
 async def man(ctx):
-    await ctx.send("Currently available commands list:\n"
-                   "$g (req), $gen (req), $generate (req) - generate image by (req) tags\n"
-                   "$prog, $state, $progress - show current task ETA, step and completion %\n"
-                   "$h, $help, $commands - show this help message")
+    await ctx.message.channel.send(embed=UserHelp.main_help_embed())
 
 
 @commands.command(aliases=['prog', 'state'])
@@ -70,7 +68,6 @@ async def refresh_ckpt(ctx):
 @commands.command(aliases=['models', 'list_models'])
 async def show_ckpt(ctx):
     await WebuiRequests.get_sd_models(ctx, webui_url, "1")
-
 
 
 @commands.command(aliases=['find_model', 'find'])
