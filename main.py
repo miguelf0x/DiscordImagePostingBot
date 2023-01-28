@@ -3,19 +3,18 @@
 
 import asyncio
 import os
-import threading
 
 import discord
-import yaml
 from PIL import Image
 from discord.ext import commands
 from dotenv import load_dotenv
 
-import PromptTemplate
+import PromptParser
 import TracedValue
 import WebuiRequests
-import SafeTypes
 import UserInteraction
+import ConfigHandler
+
 
 bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
@@ -32,76 +31,12 @@ async def progress(ctx):
 
 @commands.command(aliases=['g', 'generate'])
 async def gen(ctx, *, arg):
-
-    if arg != "":
-
-        prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
-        trimmed = arg.split(",", 3)
-
-        steps = SafeTypes.safe_cast(trimmed[0], "int")
-        width = SafeTypes.safe_cast(trimmed[1], "int")
-        height = SafeTypes.safe_cast(trimmed[2], "int")
-
-        if steps > 0 and width > 0 and height > 0:
-            prompt["steps"] = str(steps)
-            prompt["width"] = str(width)
-            prompt["height"] = str(height)
-            prompt["prompt"] = str(trimmed[3])
-        elif steps > 0:
-            prompt["prompt"] = str(trimmed[1])+str(trimmed[2])+str(trimmed[3])
-            prompt["steps"] = str(steps)
-        else:
-            prompt["steps"] = arg
-
-        gen_thread = threading.Thread(target=WebuiRequests.post_generate,
-                                      args=(ctx, prompt, webui_url, post_directory))
-        gen_thread.start()
-
-    else:
-        await man(ctx)
+    PromptParser.single_gen(ctx, arg, webui_url, post_directory)
 
 
 @commands.command(aliases=['b', 'batch', 'mass'])
 async def batch_gen(ctx, *, arg):
-
-    if arg != "":
-
-        trimmed_arg = arg.split(",", 1)
-
-        count = SafeTypes.safe_cast(trimmed_arg[0], "int")
-        tags = SafeTypes.safe_cast(trimmed_arg[1], "str")
-
-        for i in range(0, count):
-
-            if tags != "":
-
-                prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
-                trimmed = tags.split(",", 3)
-
-                steps = SafeTypes.safe_cast(trimmed[0], "int")
-                width = SafeTypes.safe_cast(trimmed[1], "int")
-                height = SafeTypes.safe_cast(trimmed[2], "int")
-
-                if steps > 0 and width > 0 and height > 0:
-                    prompt["steps"] = str(steps)
-                    prompt["width"] = str(width)
-                    prompt["height"] = str(height)
-                    prompt["prompt"] = str(trimmed[3])
-                elif steps > 0:
-                    prompt["prompt"] = str(trimmed[1]) + str(trimmed[2]) + str(trimmed[3])
-                    prompt["steps"] = str(steps)
-                else:
-                    prompt["steps"] = arg
-
-                gen_thread = threading.Thread(target=WebuiRequests.post_generate,
-                                              args=(ctx, prompt, webui_url, post_directory))
-                gen_thread.start()
-
-            else:
-                await man(ctx)
-
-    else:
-        await man(ctx)
+    PromptParser.multiple_gen(ctx, arg, webui_url, post_directory)
 
 
 @commands.command(aliases=['ref', 'refresh'])
@@ -131,35 +66,6 @@ def get_files(source):
         if os.path.isfile(fullpath):
             files.add(file)
     return files
-
-
-def load_config(config_dir):
-
-    try:
-        custom_cfg = os.path.join(config_dir, 'config.yaml')
-        with open(custom_cfg) as f:
-            try:
-                conf = yaml.load(f, Loader=yaml.FullLoader)
-                return conf
-
-            except yaml.YAMLError as exception:
-                print(exception)
-
-    except FileNotFoundError as exception:
-        print(exception)
-        default_cfg = os.path.join(config_dir, 'default-config.yaml')
-        try:
-            with open(default_cfg) as f:
-                try:
-                    conf = yaml.load(f, Loader=yaml.FullLoader)
-                    print("config.yaml cannot be read, loaded settings from default-config.yaml")
-                    return conf
-
-                except yaml.YAMLError as exception:
-                    print(exception)
-
-        except FileNotFoundError as exception:
-            print(exception)
 
 
 async def channel_poster(channel, files, directory):
@@ -233,7 +139,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     # load config files from 'config' directory
-    data = load_config('config')
+    data = ConfigHandler.load_config('config')
     announce_interval = data["announce_interval"]
     check_interval = data["check_interval"]
     send_interval = data["send_interval"]
