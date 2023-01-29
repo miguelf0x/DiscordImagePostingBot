@@ -34,9 +34,23 @@ async def gen(ctx, *, arg):
     PromptParser.image_gen(ctx, arg, webui_url, post_directory)
 
 
+@gen.error
+async def gen_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            await UserInteraction.send_oops_embed(ctx, "generate")
+
+
 @commands.command(aliases=['b', 'batch', 'mass'])
 async def batch_gen(ctx, *, arg):
-    PromptParser.mass_gen(ctx, arg, webui_url, post_directory)
+    await PromptParser.mass_gen(ctx, arg, webui_url, post_directory)
+
+
+@batch_gen.error
+async def batch_gen_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            await UserInteraction.send_oops_embed(ctx, "batch")
 
 
 @commands.command(aliases=['ref', 'refresh'])
@@ -54,6 +68,13 @@ async def find_ckpt(ctx, arg):
     await WebuiRequests.find_model_by_hash(ctx, webui_url, arg)
 
 
+@find_ckpt.error
+async def find_ckpt_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            await UserInteraction.send_oops_embed(ctx, "find_ckpt")
+
+
 @commands.command(aliases=['set_model', 'set'])
 async def set_ckpt(ctx, arg):
     await WebuiRequests.select_model_by_arg(ctx, webui_url, arg)
@@ -63,10 +84,7 @@ async def set_ckpt(ctx, arg):
 async def set_ckpt_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         if error.param.name == "arg":
-            embedding = UserInteraction.EMBED
-            embedding.title = 'Oops!'
-            embedding.description = f'Command argument missing!'
-            await ctx.send(embed=embedding)
+            await UserInteraction.send_oops_embed(ctx, "set_ckpt")
 
 
 @commands.command(aliases=['stop', 'halt'])
