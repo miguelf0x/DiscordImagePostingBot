@@ -29,3 +29,19 @@ def main_help_embed():
     )
     return embedding
 
+
+async def send_error_embed(ctx, action, error):
+    print(f"[ERROR]: While {action}\n{error}")
+    embedding = discord.Embed(
+        title='Failed!',
+        description=f"{action} failed: {error}"
+    )
+    await ctx.send(embed=embedding)
+
+
+async def send_success_embed(ctx, description):
+    embedding = discord.Embed(
+        title='Success!',
+        description=str(description)
+    )
+    await ctx.send(embed=embedding)
