@@ -112,7 +112,7 @@ async def get_sd_models(ctx, webui_url, show_list):
         models_msg = ""
         count = 0
         for count, value in enumerate(models):
-            models_msg += f"[{count}] Checkpoint: `{value['model_name']}`, " \
+            models_msg += f"[{count+1}] Checkpoint: `{value['model_name']}`, " \
                           f"Hash: `{value['hash']}`\n"
         embedding.description = f"Found {count} models:\n" + models_msg
         await ctx.send(embed=embedding)
