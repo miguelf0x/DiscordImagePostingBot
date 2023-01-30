@@ -1,5 +1,7 @@
 # Discord Image Posting Bot
 
+<a href="https://codeclimate.com/github/miguelf0x/DiscordImagePostingBot/maintainability"><img src="https://api.codeclimate.com/v1/badges/1351c9d4bc079e3137e0/maintainability" /></a>
+
 This tiny bot is designed for posting newly added images in specified directory
 
 ## Environment Variables
@@ -30,7 +32,11 @@ Currently available commands are:
 
 * `$g (req)`, `$gen (req)`, `$generate (req)` - generate image by (req) tags
 * `$prog`, `$state`, `$progress` - show current task ETA, step and completion
-* `$h`, `$help`, `$commands` - show this help message
+* `$h`, `$help`, `$commands`, `$man` - show this help message
+* `$ref`, `$refresh`, `$refresh_ckpt` - refresh checkpoints list
+* `$models`, `$list_models`, `$show_ckpt` - show available checkpoints
+* `$find`, `$find_model`, `$find_ckpt` - find checkpoint by hash
+* `$set`, `$set_model`, `$set_ckpt` - set checkpoint by index in `$models` or by hash
 
 ## Authors
 

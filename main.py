@@ -2,97 +2,94 @@
 # github.com/miguelf0x
 
 import asyncio
-import base64
-import io
-import logging
 import os
-import threading
 
 import discord
-import requests
-import yaml
-from PIL import Image, PngImagePlugin
+from PIL import Image
 from discord.ext import commands
 from dotenv import load_dotenv
 
-import PromptTemplate
+import PromptParser
 import TracedValue
+import WebuiRequests
+import UserInteraction
+import ConfigHandler
+
 
 bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
 
 
-def generate(prompt):
-
-    logging.info(f"start task ")
-    response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
-
-    if response.status_code > 400:
-        print("git gud")
-        print(response.text)
-        return 228
-
-    r = response.json()
-
-    os.makedirs(post_directory, exist_ok=True)
-
-    for index, item in enumerate(r['images']):
-        image = Image.open(io.BytesIO(base64.b64decode(item.split(",", 1)[0])))
-
-        png_payload = {
-            "image": "data:image/png;base64," + item
-        }
-        response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info', json=png_payload)
-
-        info = response2.json().get("info")
-        info = info.split("\n")[2].split(',')
-        result = {}
-
-        for x in info:
-            x = x.split(': ')
-            x[0] = x[0].replace(" ", "")
-            result[x[0]] = x[1]
-
-        pnginfo = PngImagePlugin.PngInfo()
-        pnginfo.add_text("parameters", response2.json().get("info"))
-
-        seed = result["Seed"]
-        sampler = result["Sampler"]
-        steps = result["Steps"]
-        model_hash = result["Modelhash"]
-
-        post_directory_img = os.path.join(post_directory, f'{seed}-{sampler}-{steps}-{model_hash}.png')
-        logging.info(f"save new img to {post_directory_img}")
-        image.save(post_directory_img, pnginfo=pnginfo)
-
-
-@commands.command(aliases=['commands', 'help'])
-async def h(ctx):
-    await ctx.send("Currently available commands list:\n"
-                   "$g (req), $gen (req), $generate (req) - generate image by (req) tags\n"
-                   "$prog, $state, $progress - show current task ETA, step and completion %\n"
-                   "$h, $help, $commands - show this help message")
+@commands.command(aliases=['h', 'help', 'commands'])
+async def man(ctx):
+    await ctx.send(embed=UserInteraction.main_help_embed())
 
 
 @commands.command(aliases=['prog', 'state'])
 async def progress(ctx):
-    prog = requests.get(url=f'{webui_url}/sdapi/v1/progress')
-
-    job_progress = prog.json().get("progress")
-    job_eta = prog.json().get("eta_relative")
-    job_state = prog.json().get("state")
-
-    await ctx.send(f'Progress: {round(job_progress*100, 2)}%\n'
-                   f'Job ETA: {round(job_eta)}s\n'
-                   f''
-                   f'Step: {job_state["sampling_step"]} of {job_state["sampling_steps"]}\n')
+    await WebuiRequests.get_progress(ctx, webui_url)
 
 
 @commands.command(aliases=['g', 'generate'])
 async def gen(ctx, *, arg):
-    prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
-    prompt["prompt"] = arg
-    gen_thread = threading.Thread(target=generate, args=(prompt,))
-    gen_thread.start()
+    PromptParser.image_gen(ctx, arg, webui_url, post_directory)
+
+
+@gen.error
+async def gen_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            await UserInteraction.send_oops_embed(ctx, "generate")
+
+
+@commands.command(aliases=['b', 'batch', 'mass'])
+async def batch_gen(ctx, *, arg):
+    await PromptParser.mass_gen(ctx, arg, webui_url, post_directory)
+
+
+@batch_gen.error
+async def batch_gen_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            await UserInteraction.send_oops_embed(ctx, "batch")
+
+
+@commands.command(aliases=['ref', 'refresh'])
+async def refresh_ckpt(ctx):
+    await WebuiRequests.post_refresh_ckpt(ctx, webui_url)
+
+
+@commands.command(aliases=['models', 'list_models'])
+async def show_ckpt(ctx):
+    await WebuiRequests.get_sd_models(ctx, webui_url, "1")
+
+
+@commands.command(aliases=['find_model', 'find'])
+async def find_ckpt(ctx, arg):
+    await WebuiRequests.find_model_by_hash(ctx, webui_url, arg)
+
+
+@find_ckpt.error
+async def find_ckpt_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            await UserInteraction.send_oops_embed(ctx, "find_ckpt")
+
+
+@commands.command(aliases=['set_model', 'set'])
+async def set_ckpt(ctx, arg):
+    await WebuiRequests.select_model_by_arg(ctx, webui_url, arg)
+
+
+@set_ckpt.error
+async def set_ckpt_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        if error.param.name == "arg":
+            await UserInteraction.send_oops_embed(ctx, "set_ckpt")
+
+
+@commands.command(aliases=['stop', 'halt'])
+async def interrupt(ctx):
+    await WebuiRequests.user_interrupt(ctx, webui_url)
 
 
 def get_files(source):
@@ -102,33 +99,6 @@ def get_files(source):
         if os.path.isfile(fullpath):
             files.add(file)
     return files
-
-
-def load_config(config_dir):
-
-    try:
-        with open(os.path.join(config_dir, 'config.yaml')) as f:
-            try:
-                conf = yaml.load(f, Loader=yaml.FullLoader)
-                return conf
-
-            except yaml.YAMLError as exception:
-                print(exception)
-
-    except FileNotFoundError as exception:
-        print(exception)
-        try:
-            with open(os.path.join(config_dir, 'default-config.yaml')) as f:
-                try:
-                    conf = yaml.load(f, Loader=yaml.FullLoader)
-                    print("config.yaml cannot be read, loaded settings from default-config.yaml")
-                    return conf
-
-                except yaml.YAMLError as exception:
-                    print(exception)
-
-        except FileNotFoundError as exception:
-            print(exception)
 
 
 async def channel_poster(channel, files, directory):
@@ -168,10 +138,16 @@ async def channel_poster(channel, files, directory):
                     steps = 'unknown'
                     seed = 'unknown'
 
-                await channel.send(f'Model hash: {modelhash}, Sampler: {sampler}, Steps: {steps}, '
-                                   f'Seed: {seed}\nResolution: {width}x{height} [AR: {round(width / height, 3)}]',
-                                   file=discord.File(file))
+                embedding = UserInteraction.EMBED
+                embedding.title = 'Generated image'
+                embedding.description = (f'Model hash: `{modelhash}`, Sampler: `{sampler}`\n'
+                                         f'Steps: `{steps}`, Seed: `{seed}`\n'
+                                         f'Resolution: `{width}x{height} '
+                                         f'[AR: {round(width / height, 3)}]`')
+                image = discord.File(file, filename=x)
+                embedding.set_image(url="attachment://" + x)
 
+                await channel.send(file=image, embed=embedding)
                 await asyncio.sleep(send_interval)
 
 
@@ -196,7 +172,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     # load config files from 'config' directory
-    data = load_config('config')
+    data = ConfigHandler.load_config('config')
     announce_interval = data["announce_interval"]
     check_interval = data["check_interval"]
     send_interval = data["send_interval"]
@@ -211,14 +187,33 @@ if __name__ == "__main__":
     BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
     CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
 
-    # noinspection PyTypeChecker
     bot.remove_command("help")
-    bot.add_command(h)
+
+    # noinspection PyTypeChecker
+    bot.add_command(man)
 
     # noinspection PyTypeChecker
     bot.add_command(progress)
 
     # noinspection PyTypeChecker
     bot.add_command(gen)
+
+    # noinspection PyTypeChecker
+    bot.add_command(batch_gen)
+
+    # noinspection PyTypeChecker
+    bot.add_command(refresh_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(show_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(find_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(set_ckpt)
+
+    # noinspection PyTypeChecker
+    bot.add_command(interrupt)
 
     bot.run(os.environ['DISCORD_API_KEY'])
