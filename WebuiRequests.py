@@ -1,7 +1,8 @@
-import requests
-import os
 import base64
 import io
+import os
+
+import requests
 from PIL import Image, PngImagePlugin
 
 import UserInteraction
@@ -17,36 +18,47 @@ async def user_interrupt(ctx, webui_url):
     await UserInteraction.send_success_embed(ctx, 'Image generating interrupted')
 
 
+async def get_check_online(webui_url):
+    try:
+        requests.post(url=f'{webui_url}/app_id')
+    except Exception as e:
+        return ['WebUI is offline: ', e]
+    return False
+
+
 async def get_progress(ctx, webui_url):
     try:
-        prog = requests.get(url=f'{webui_url}/sdapi/v1/progress')
+        prog = (requests.get(url=f'{webui_url}/sdapi/v1/progress')).json()
     except Exception as e:
         await UserInteraction.send_error_embed(ctx, "Sending progress GET request", e)
         return
 
-    job_progress = prog.json().get("progress")
-    job_eta = prog.json().get("eta_relative")
-    job_state = prog.json().get("state")
+    job_progress = prog.get("progress")
+    job_eta = prog.get("eta_relative")
+    job_state = prog.get("state")
 
-    embedding = UserInteraction.EMBED
-    embedding.title = 'Current task state'
-    embedding.description = (f'Progress: `{round(job_progress*100, 2)}%`\n'
-                             f'Job ETA: `{round(job_eta)}s`\n'
-                             f'Step: `{job_state["sampling_step"]} of '
-                             f'{job_state["sampling_steps"]}`')
+    description = (f'Progress: `{round(job_progress*100, 2)}%`\n'
+                   f'Job ETA: `{round(job_eta)}s`\n'
+                   f'Step: `{job_state["sampling_step"]} of '
+                   f'{job_state["sampling_steps"]}`')
 
-    await ctx.send(embeds=embedding)
+    await UserInteraction.send_custom_embed(ctx, 'Current task state', description, "INFO")
 
 
 def post_generate(ctx, prompt, webui_url, post_directory):
     try:
         response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
     except Exception as e:
-        UserInteraction.send_error_embed(ctx, "Sending txt2img POST request", e)
+        print(e)
+        # await UserInteraction.send_error_embed(ctx, "Sending txt2img POST request", e)
+        with open('.temp/.error', 'w') as f:
+            f.write(f'Sending txt2img POST request: {e}')
         return
 
     if response.status_code > 400:
-        UserInteraction.send_error_embed(ctx, "Generating image", response.text)
+        # await UserInteraction.send_error_embed(ctx, "Generating image", response.text)
+        with open('.temp/.error', 'w') as f:
+            f.write(f'Generating image: {response.text}')
         return 228
 
     r = response.json()
@@ -106,16 +118,15 @@ async def get_sd_models(ctx, webui_url, show_list):
         return
 
     models = models.json()
-    embedding = UserInteraction.EMBED
+
     if show_list == "1":
-        embedding.title = 'Available models list'
         models_msg = ""
         count = 0
         for count, value in enumerate(models):
             models_msg += f"[{count+1}] Checkpoint: `{value['model_name']}`, " \
                           f"Hash: `{value['hash']}`\n"
-        embedding.description = f"Found {count} models:\n" + models_msg
-        await ctx.send(embeds=embedding)
+        models_msg = f"Found {count+1} models:\n" + models_msg
+        await UserInteraction.send_custom_embed(ctx, 'Available models list', models_msg, "MESG")
     return models
 
 

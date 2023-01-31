@@ -1,6 +1,5 @@
 import interactions
 
-
 HELP_TEXT = {
     "default": "`/gen` - picture generation\n"
                "`/state` - show current task ETA, step and completion %\n"
@@ -32,35 +31,44 @@ EMBED = interactions.Embed(
     )
 
 
-def main_help_embed():
+async def send_custom_embed(ctx, title, description, embed_type):
+
+    match embed_type:
+        case "INFO":
+            color = interactions.Color.blurple()
+        case "WARN":
+            color = interactions.Color.yellow()
+        case "CRIT":
+            color = interactions.Color.red()
+        case "GOOD":
+            color = interactions.Color.green()
+        case "MESG":
+            color = interactions.Color.black()
+        case _:
+            color = interactions.Color.fuchsia()
+
     embedding = interactions.Embed(
-        title='Available commands',
-        description=HELP_TEXT["default"],
+        title=title,
+        color=color,
+        description=description
     )
-    return embedding
+    await ctx.send(embeds=embedding)
 
 
 async def send_error_embed(ctx, action, error):
     print(f"[ERROR]: While {action}\n{error}")
-    embedding = interactions.Embed(
-        title='Failed!',
-        description=f"{action} failed: {error}"
-    )
-    await ctx.send(embeds=embedding)
+    await send_custom_embed(ctx, "Failed!", f"{action} failed: {error}", "CRIT")
 
 
 async def send_success_embed(ctx, description):
-    embedding = interactions.Embed(
-        title='Success!',
-        description=str(description)
-    )
-    await ctx.send(embeds=embedding)
+    await send_custom_embed(ctx, "Success!", description, "GOOD")
 
 
 async def send_oops_embed(ctx, command):
-    embedding = interactions.Embed(
-        title='Oops!',
-        description=(f'Command argument is missing or wrong!\n'
-                     f'Correct usage is:\n{HELP_TEXT[command]}')
-    )
-    await ctx.send(embeds=embedding)
+    description = (f'Command argument is missing or wrong!\n'
+                   f'Correct usage is:\n{HELP_TEXT[command]}')
+    await send_custom_embed(ctx, "Oops!", description, "WARN")
+
+
+async def send_help_embed(ctx):
+    await send_custom_embed(ctx, "Available commands", HELP_TEXT["default"], "INFO")

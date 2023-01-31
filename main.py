@@ -5,7 +5,6 @@
 import asyncio
 import os
 
-import discord
 from PIL import Image
 
 from dotenv import load_dotenv
@@ -17,7 +16,6 @@ import UserInteraction
 import ConfigHandler
 import interactions
 
-
 load_dotenv()
 
 bot = interactions.Client(token=os.environ['DISCORD_API_TOKEN'])
@@ -27,7 +25,7 @@ webui_url = ""
 @bot.command()
 async def help(ctx: interactions.CommandContext):
     """Show help message"""
-    await ctx.send(embeds=UserInteraction.main_help_embed())
+    await UserInteraction.send_help_embed(ctx)
 
 
 @bot.command()
@@ -74,9 +72,11 @@ async def state(ctx: interactions.CommandContext):
 )
 async def gen(ctx: interactions.CommandContext, tags: str, batch_count: int = 0, steps: int = 0,
               width: int = 0, height: int = 0):
-
-    PromptParser.image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height, tags)
-    await UserInteraction.send_success_embed(ctx, "Your request is registered")
+    if online == 0:
+        await UserInteraction.send_success_embed(ctx, "Your request is registered")
+        PromptParser.image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height, tags)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 @bot.command()
@@ -188,23 +188,57 @@ async def channel_poster(channel, files, directory):
                 await asyncio.sleep(send_interval)
 
 
+async def check_state(error_channel):
+
+    errorfile = '.temp/.error'
+    offlinefile = '.temp/.offline'
+
+    global online
+
+    if os.path.exists(errorfile):
+        with open(errorfile) as f:
+            error = str(f.readline()).split(": ")
+            await UserInteraction.send_error_embed(error_channel, error[0], error[1])
+        os.remove(errorfile)
+
+    offline = await WebuiRequests.get_check_online(webui_url)
+
+    if offline is not False:
+        if not os.path.exists(offlinefile):
+            online = -1
+            await UserInteraction.send_custom_embed(error_channel,
+                                                    "WebUI is offline",
+                                                    "Your prompts will NOT be executed",
+                                                    "CRIT")
+            with open(offlinefile, 'w') as f:
+                f.write(offline[0] + str(offline[1]))
+    elif os.path.exists(offlinefile):
+        os.remove(offlinefile)
+        online = 0
+        await UserInteraction.send_custom_embed(error_channel,
+                                                "WebUI is online",
+                                                "Now your prompts will be executed",
+                                                "GOOD")
+
+
 @bot.event
 async def on_ready():
     post_channel = await interactions.get(bot, interactions.Channel, object_id=POST_CHANNEL_ID)
     best_channel = await interactions.get(bot, interactions.Channel, object_id=BEST_CHANNEL_ID)
     crsd_channel = await interactions.get(bot, interactions.Channel, object_id=CRSD_CHANNEL_ID)
+    err_channel = await interactions.get(bot, interactions.Channel, object_id=ERR_CHANNEL_ID)
     post_files = TracedValue.TracedValue(get_files(post_directory))
     best_files = TracedValue.TracedValue(get_files(best_directory))
     crsd_files = TracedValue.TracedValue(get_files(crsd_directory))
 
     while True:
+        await check_state(err_channel)
         await channel_poster(post_channel, post_files, post_directory)
         await channel_poster(best_channel, best_files, best_directory)
         await channel_poster(crsd_channel, crsd_files, crsd_directory)
 
 
 if __name__ == "__main__":
-
     # load .env
     load_dotenv()
 
@@ -223,5 +257,7 @@ if __name__ == "__main__":
     POST_CHANNEL_ID = int(os.environ['POST_CHANNEL_ID'])
     BEST_CHANNEL_ID = int(os.environ['BEST_CHANNEL_ID'])
     CRSD_CHANNEL_ID = int(os.environ['CRSD_CHANNEL_ID'])
+    ERR_CHANNEL_ID = int(os.environ['ERR_CHANNEL_ID'])
+    online = None
 
     bot.start()

@@ -1,8 +1,9 @@
+import threading
+
+import PromptTemplate
 import SafeTypes
 import UserInteraction
 import WebuiRequests
-import PromptTemplate
-import threading
 
 
 def image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height, tags):
@@ -23,16 +24,3 @@ def image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height,
     gen_thread = threading.Thread(target=WebuiRequests.post_generate,
                                   args=(ctx, prompt, webui_url, post_directory))
     gen_thread.start()
-
-
-async def mass_gen(ctx, arg, webui_url, post_directory):
-    trimmed_arg = arg.split(",", 1)
-
-    count = SafeTypes.safe_cast(trimmed_arg[0], "int")
-    if count == -253:
-        await UserInteraction.send_oops_embed(ctx, "batch")
-        return
-
-    tags = SafeTypes.safe_cast(trimmed_arg[1], "str")
-
-    image_gen(ctx, tags, webui_url, post_directory, batch_size=count)

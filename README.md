@@ -12,6 +12,7 @@ To run this project, you will need to add the following environment variables to
 `POST_CHANNEL_ID`
 `BEST_CHANNEL_ID`
 `CRSD_CHANNEL_ID`
+`ERR_CHANNEL_ID`
 `GUILD_ID`
 `APPLICATION_ID`
 
