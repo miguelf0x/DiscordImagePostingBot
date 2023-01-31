@@ -48,8 +48,8 @@ async def state(ctx: interactions.CommandContext):
             required=True,
         ),
         interactions.Option(
-            name="batch_count",
-            description="How many pictures generate in parallel [1-8]",
+            name="image_count",
+            description="How many pictures to generate in parallel [1-8]",
             type=interactions.OptionType.INTEGER,
             required=False,
         ),
@@ -73,11 +73,11 @@ async def state(ctx: interactions.CommandContext):
         ),
     ],
 )
-async def gen(ctx: interactions.CommandContext, tags: str, batch_count: int = 0, steps: int = 0,
+async def gen(ctx: interactions.CommandContext, tags: str, image_count: int = 0, steps: int = 0,
               width: int = 0, height: int = 0):
     if online == 0:
         await UserInteraction.send_success_embed(ctx, "Your request is registered")
-        PromptParser.image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height, tags)
+        PromptParser.image_gen(ctx, webui_url, post_directory, image_count, steps, width, height, tags)
     else:
         await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
