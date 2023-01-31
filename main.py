@@ -195,7 +195,7 @@ async def channel_poster(channel, files, directory):
 
                 embedding = interactions.Embed()
                 embedding.title = 'Generated image'
-                model_name = WebuiRequests.find_model_by_hash(channel, webui_url, modelhash, False)
+                model_name = await WebuiRequests.find_model_by_hash(channel, webui_url, modelhash, False)
                 if model_name == -255:
                     model_name = 'unknown'
                 embedding.description = (f'Model: `{model_name}` with hash {modelhash}, Sampler: `{sampler}`\n'
@@ -233,13 +233,14 @@ async def check_state(error_channel):
                                                     "CRIT")
             with open(offlinefile, 'w') as f:
                 f.write(offline[0] + str(offline[1]))
-    elif os.path.exists(offlinefile):
-        os.remove(offlinefile)
+    else:
+        if os.path.exists(offlinefile):
+            os.remove(offlinefile)
+            await UserInteraction.send_custom_embed(error_channel,
+                                                    "WebUI is online",
+                                                    "Now your prompts will be executed",
+                                                    "GOOD")
         online = 0
-        await UserInteraction.send_custom_embed(error_channel,
-                                                "WebUI is online",
-                                                "Now your prompts will be executed",
-                                                "GOOD")
 
 
 @bot.event
