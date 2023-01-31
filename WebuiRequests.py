@@ -35,7 +35,7 @@ async def get_progress(ctx, webui_url):
                              f'Step: `{job_state["sampling_step"]} of '
                              f'{job_state["sampling_steps"]}`')
 
-    await ctx.send(embed=embedding)
+    await ctx.send(embeds=embedding)
 
 
 def post_generate(ctx, prompt, webui_url, post_directory):
@@ -115,7 +115,7 @@ async def get_sd_models(ctx, webui_url, show_list):
             models_msg += f"[{count+1}] Checkpoint: `{value['model_name']}`, " \
                           f"Hash: `{value['hash']}`\n"
         embedding.description = f"Found {count} models:\n" + models_msg
-        await ctx.send(embed=embedding)
+        await ctx.send(embeds=embedding)
     return models
 
 
@@ -154,6 +154,7 @@ async def select_model_by_arg(ctx, webui_url, argument):
         option_payload = {"sd_model_checkpoint": model_title}
 
     try:
+        await UserInteraction.send_success_embed(ctx, f'Checkpoint `{model_title}` will be set')
         post_result = requests.post(url=f'{webui_url}/sdapi/v1/options',
                                     json=option_payload)
     except Exception as e:

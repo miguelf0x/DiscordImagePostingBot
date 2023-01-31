@@ -1,12 +1,13 @@
 # Tikhomirov Mikhail, 2023
 # github.com/miguelf0x
 
+
 import asyncio
 import os
 
 import discord
 from PIL import Image
-from discord.ext import commands
+
 from dotenv import load_dotenv
 
 import PromptParser
@@ -14,81 +15,117 @@ import TracedValue
 import WebuiRequests
 import UserInteraction
 import ConfigHandler
+import interactions
 
 
-bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
+load_dotenv()
+
+bot = interactions.Client(token=os.environ['DISCORD_API_TOKEN'])
+webui_url = ""
 
 
-@commands.command(aliases=['h', 'help', 'commands'])
-async def man(ctx):
-    await ctx.send(embed=UserInteraction.main_help_embed())
+@bot.command()
+async def help(ctx: interactions.CommandContext):
+    """Show help message"""
+    await ctx.send(embeds=UserInteraction.main_help_embed())
 
 
-@commands.command(aliases=['prog', 'state'])
-async def progress(ctx):
+@bot.command()
+async def state(ctx: interactions.CommandContext):
+    """Check current task state"""
     await WebuiRequests.get_progress(ctx, webui_url)
 
 
-@commands.command(aliases=['g', 'generate'])
-async def gen(ctx, *, arg):
-    PromptParser.image_gen(ctx, arg, webui_url, post_directory)
+@bot.command(
+    name="gen",
+    description="Generate image using txt2img",
+    options=[
+        interactions.Option(
+            name="tags",
+            description="Image tags divided with comma",
+            type=interactions.OptionType.STRING,
+            required=True,
+        ),
+        interactions.Option(
+            name="batch_count",
+            description="How many pictures generate in parallel [1-8]",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+        interactions.Option(
+            name="steps",
+            description="Interference steps count [0-200]",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+        interactions.Option(
+            name="width",
+            description="Image width (px)",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+        interactions.Option(
+            name="height",
+            description="Image height (px)",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+    ],
+)
+async def gen(ctx: interactions.CommandContext, tags: str, batch_count: int = 0, steps: int = 0,
+              width: int = 0, height: int = 0):
+
+    PromptParser.image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height, tags)
+    await UserInteraction.send_success_embed(ctx, "Your request is registered")
 
 
-@gen.error
-async def gen_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "generate")
-
-
-@commands.command(aliases=['b', 'batch', 'mass'])
-async def batch_gen(ctx, *, arg):
-    await PromptParser.mass_gen(ctx, arg, webui_url, post_directory)
-
-
-@batch_gen.error
-async def batch_gen_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "batch")
-
-
-@commands.command(aliases=['ref', 'refresh'])
-async def refresh_ckpt(ctx):
+@bot.command()
+async def refresh(ctx: interactions.CommandContext):
+    """Refresh models list"""
     await WebuiRequests.post_refresh_ckpt(ctx, webui_url)
 
 
-@commands.command(aliases=['models', 'list_models'])
-async def show_ckpt(ctx):
+@bot.command()
+async def models(ctx: interactions.CommandContext):
+    """Show available models"""
     await WebuiRequests.get_sd_models(ctx, webui_url, "1")
 
 
-@commands.command(aliases=['find_model', 'find'])
-async def find_ckpt(ctx, arg):
-    await WebuiRequests.find_model_by_hash(ctx, webui_url, arg)
+@bot.command(
+    name="find",
+    description="Search model by hash",
+    options=[
+        interactions.Option(
+            name="modelhash",
+            description="Searched model hash",
+            type=interactions.OptionType.STRING,
+            required=True,
+        ),
+    ],
+)
+async def find(ctx: interactions.CommandContext, modelhash: str):
+    await WebuiRequests.find_model_by_hash(ctx, webui_url, modelhash)
 
 
-@find_ckpt.error
-async def find_ckpt_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "find_ckpt")
+@bot.command(
+    name="select",
+    description="Select model by hash or by /models id",
+    options=[
+        interactions.Option(
+            name="model",
+            description="Model hash or id from /models",
+            type=interactions.OptionType.STRING,
+            required=True,
+        ),
+    ],
+)
+async def select(ctx: interactions.CommandContext, model: str):
+    await WebuiRequests.select_model_by_arg(ctx, webui_url, model)
 
 
-@commands.command(aliases=['set_model', 'set'])
-async def set_ckpt(ctx, arg):
-    await WebuiRequests.select_model_by_arg(ctx, webui_url, arg)
-
-
-@set_ckpt.error
-async def set_ckpt_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "set_ckpt")
-
-
-@commands.command(aliases=['stop', 'halt'])
-async def interrupt(ctx):
+@bot.command()
+async def skip(ctx: interactions.CommandContext):
+    """Skip current task"""
     await WebuiRequests.user_interrupt(ctx, webui_url)
 
 
@@ -138,24 +175,24 @@ async def channel_poster(channel, files, directory):
                     steps = 'unknown'
                     seed = 'unknown'
 
-                embedding = UserInteraction.EMBED
+                embedding = interactions.Embed()
                 embedding.title = 'Generated image'
                 embedding.description = (f'Model hash: `{modelhash}`, Sampler: `{sampler}`\n'
                                          f'Steps: `{steps}`, Seed: `{seed}`\n'
                                          f'Resolution: `{width}x{height} '
                                          f'[AR: {round(width / height, 3)}]`')
-                image = discord.File(file, filename=x)
-                embedding.set_image(url="attachment://" + x)
+                image = interactions.File(file)
+                embedding.set_image(url=f"attachment://{x}")
 
-                await channel.send(file=image, embed=embedding)
+                await channel.send(files=image, embeds=embedding)
                 await asyncio.sleep(send_interval)
 
 
 @bot.event
 async def on_ready():
-    post_channel = bot.get_channel(int(POST_CHANNEL_ID))
-    best_channel = bot.get_channel(int(BEST_CHANNEL_ID))
-    crsd_channel = bot.get_channel(int(CRSD_CHANNEL_ID))
+    post_channel = await interactions.get(bot, interactions.Channel, object_id=POST_CHANNEL_ID)
+    best_channel = await interactions.get(bot, interactions.Channel, object_id=BEST_CHANNEL_ID)
+    crsd_channel = await interactions.get(bot, interactions.Channel, object_id=CRSD_CHANNEL_ID)
     post_files = TracedValue.TracedValue(get_files(post_directory))
     best_files = TracedValue.TracedValue(get_files(best_directory))
     crsd_files = TracedValue.TracedValue(get_files(crsd_directory))
@@ -183,37 +220,8 @@ if __name__ == "__main__":
     enable_img_announce = data["enable_image_announce"]
 
     # assign envvars and start bot
-    POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
-    BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
-    CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
+    POST_CHANNEL_ID = int(os.environ['POST_CHANNEL_ID'])
+    BEST_CHANNEL_ID = int(os.environ['BEST_CHANNEL_ID'])
+    CRSD_CHANNEL_ID = int(os.environ['CRSD_CHANNEL_ID'])
 
-    bot.remove_command("help")
-
-    # noinspection PyTypeChecker
-    bot.add_command(man)
-
-    # noinspection PyTypeChecker
-    bot.add_command(progress)
-
-    # noinspection PyTypeChecker
-    bot.add_command(gen)
-
-    # noinspection PyTypeChecker
-    bot.add_command(batch_gen)
-
-    # noinspection PyTypeChecker
-    bot.add_command(refresh_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(show_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(find_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(set_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(interrupt)
-
-    bot.run(os.environ['DISCORD_API_KEY'])
+    bot.start()
