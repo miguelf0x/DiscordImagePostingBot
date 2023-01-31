@@ -71,6 +71,7 @@ def post_generate(ctx, prompt, webui_url, post_directory):
         png_payload = {
             "image": "data:image/png;base64," + item
         }
+
         response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info',
                                   json=png_payload)
 
@@ -79,7 +80,6 @@ def post_generate(ctx, prompt, webui_url, post_directory):
         result = {}
 
         for x in info:
-            print(x)
             x = x.split(': ')
             x[0] = x[0].replace(" ", "")
             result[x[0]] = x[1]
