@@ -31,7 +31,10 @@ async def help(ctx: interactions.CommandContext):
 @bot.command()
 async def state(ctx: interactions.CommandContext):
     """Check current task state"""
-    await WebuiRequests.get_progress(ctx, webui_url)
+    if online == 0:
+        await WebuiRequests.get_progress(ctx, webui_url)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 @bot.command(
@@ -82,13 +85,19 @@ async def gen(ctx: interactions.CommandContext, tags: str, batch_count: int = 0,
 @bot.command()
 async def refresh(ctx: interactions.CommandContext):
     """Refresh models list"""
-    await WebuiRequests.post_refresh_ckpt(ctx, webui_url)
+    if online == 0:
+        await WebuiRequests.post_refresh_ckpt(ctx, webui_url)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 @bot.command()
 async def models(ctx: interactions.CommandContext):
     """Show available models"""
-    await WebuiRequests.get_sd_models(ctx, webui_url, "1")
+    if online == 0:
+        await WebuiRequests.get_sd_models(ctx, webui_url, "1")
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 @bot.command(
@@ -104,7 +113,10 @@ async def models(ctx: interactions.CommandContext):
     ],
 )
 async def find(ctx: interactions.CommandContext, modelhash: str):
-    await WebuiRequests.find_model_by_hash(ctx, webui_url, modelhash)
+    if online == 0:
+        await WebuiRequests.find_model_by_hash(ctx, webui_url, modelhash)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 @bot.command(
@@ -120,13 +132,19 @@ async def find(ctx: interactions.CommandContext, modelhash: str):
     ],
 )
 async def select(ctx: interactions.CommandContext, model: str):
-    await WebuiRequests.select_model_by_arg(ctx, webui_url, model)
+    if online == 0:
+        await WebuiRequests.select_model_by_arg(ctx, webui_url, model)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 @bot.command()
 async def skip(ctx: interactions.CommandContext):
     """Skip current task"""
-    await WebuiRequests.user_interrupt(ctx, webui_url)
+    if online == 0:
+        await WebuiRequests.user_interrupt(ctx, webui_url)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 def get_files(source):
