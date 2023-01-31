@@ -1,8 +1,6 @@
 import threading
 
 import PromptTemplate
-import SafeTypes
-import UserInteraction
 import WebuiRequests
 
 
