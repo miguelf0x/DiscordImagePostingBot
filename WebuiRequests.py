@@ -130,7 +130,7 @@ async def get_sd_models(ctx, webui_url, show_list):
     return models
 
 
-async def find_model_by_hash(ctx, webui_url, modelhash):
+async def find_model_by_hash(ctx, webui_url, modelhash, show):
     try:
         models = requests.get(url=f'{webui_url}/sdapi/v1/sd-models')
     except Exception as e:
@@ -141,12 +141,15 @@ async def find_model_by_hash(ctx, webui_url, modelhash):
 
     for count, value in enumerate(models):
         if modelhash == value["hash"]:
-            await UserInteraction.send_success_embed(ctx, f'Found model `{value["model_name"]}` '
-                                                          f'with hash `{value["hash"]}`')
-            return
+            if show is True:
+                await UserInteraction.send_success_embed(ctx, f'Found model `{value["model_name"]}` '
+                                                              f'with hash `{value["hash"]}`')
+            return value["model_name"]
 
-    await UserInteraction.send_error_embed(ctx, f"Checkpoints search", f'No checkpoints '
-                                                                       f'found with hash {modelhash}')
+    if show is True:
+        await UserInteraction.send_error_embed(ctx, f"Checkpoints search", f'No checkpoints '
+                                                                           f'found with hash {modelhash}')
+    return -255
 
 
 # TODO: NEED CACHING RESPONSE AFTER get_sd_models()

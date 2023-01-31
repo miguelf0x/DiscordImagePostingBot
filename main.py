@@ -114,7 +114,7 @@ async def models(ctx: interactions.CommandContext):
 )
 async def find(ctx: interactions.CommandContext, modelhash: str):
     if online == 0:
-        await WebuiRequests.find_model_by_hash(ctx, webui_url, modelhash)
+        await WebuiRequests.find_model_by_hash(ctx, webui_url, modelhash, True)
     else:
         await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
@@ -195,7 +195,10 @@ async def channel_poster(channel, files, directory):
 
                 embedding = interactions.Embed()
                 embedding.title = 'Generated image'
-                embedding.description = (f'Model hash: `{modelhash}`, Sampler: `{sampler}`\n'
+                model_name = WebuiRequests.find_model_by_hash(channel, webui_url, modelhash, False)
+                if model_name == -255:
+                    model_name = 'unknown'
+                embedding.description = (f'Model: `{model_name}` with hash {modelhash}, Sampler: `{sampler}`\n'
                                          f'Steps: `{steps}`, Seed: `{seed}`\n'
                                          f'Resolution: `{width}x{height} '
                                          f'[AR: {round(width / height, 3)}]`')
