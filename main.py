@@ -198,7 +198,7 @@ async def channel_poster(channel, files, directory):
                 model_name = await WebuiRequests.find_model_by_hash(channel, webui_url, modelhash, False)
                 if model_name == -255:
                     model_name = 'unknown'
-                embedding.description = (f'Model: `{model_name}` with hash {modelhash}, Sampler: `{sampler}`\n'
+                embedding.description = (f'Model: `{model_name}` with hash `{modelhash}`, Sampler: `{sampler}`\n'
                                          f'Steps: `{steps}`, Seed: `{seed}`\n'
                                          f'Resolution: `{width}x{height} '
                                          f'[AR: {round(width / height, 3)}]`')
