@@ -79,6 +79,7 @@ def post_generate(ctx, prompt, webui_url, post_directory):
         result = {}
 
         for x in info:
+            print(x)
             x = x.split(': ')
             x[0] = x[0].replace(" ", "")
             result[x[0]] = x[1]
@@ -89,10 +90,12 @@ def post_generate(ctx, prompt, webui_url, post_directory):
         seed = result["Seed"]
         sampler = result["Sampler"]
         steps = result["Steps"]
+        cfg_scale = result["CFGscale"]
         model_hash = result["Modelhash"]
+        res = str(result["Size"]).split("x")
 
         post_directory_img = os.path.join(post_directory,
-                                          f'{seed}-{sampler}-{steps}-{model_hash}.png')
+                                          f'{seed}-{sampler}-{steps}-{cfg_scale}-{model_hash}-{res[0]}-{res[1]}.png')
         image.save(post_directory_img, pnginfo=pnginfo)
 
 

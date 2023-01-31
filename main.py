@@ -5,8 +5,6 @@
 import asyncio
 import os
 
-from PIL import Image
-
 from dotenv import load_dotenv
 
 import PromptParser
@@ -78,6 +76,17 @@ async def gen(ctx: interactions.CommandContext, tags: str, image_count: int = 0,
     if online == 0:
         await UserInteraction.send_success_embed(ctx, "Your request is registered")
         PromptParser.image_gen(ctx, webui_url, post_directory, image_count, steps, width, height, tags)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
+
+
+@bot.command()
+async def test(ctx: interactions.CommandContext):
+    """Generate test image [512x512, Steps=100, tags=1girl, blue hair, bobcut, portrait, blush]"""
+    if online == 0:
+        await UserInteraction.send_success_embed(ctx, "Your request is registered")
+        tags = "1girl, blue hair, bobcut, portrait, blush"
+        PromptParser.image_gen(ctx, webui_url, post_directory, 1, 100, 512, 512, tags)
     else:
         await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
@@ -170,13 +179,9 @@ async def channel_poster(channel, files, directory):
 
             for x in diff:
                 file = f'{directory}/{x}'
-
-                img = Image.open(file)
-                width, height = img.size
-                img.close()
                 name = x.split('-')
 
-                # Wanted image name format is seed-sampler-steps-model_hash
+                # Wanted image name format is {seed}-{sampler}-{steps}-{cfg_scale}{model_hash}-{width}-{height}.png
                 # So we create checks for any other format
 
                 if len(name) > 1:
@@ -184,14 +189,22 @@ async def channel_poster(channel, files, directory):
                     seed = name[0]
                     sampler = name[1]
                     steps = name[2]
-                    modelhash = name[3].split('.')[0]
+                    cfg_scale = name[3]
+                    modelhash = name[4]
+                    width = name[5]
+                    height = name[6].split('.')[0]
+                    aspect = round(int(width) / int(height), 4)
 
                 else:
 
-                    modelhash = 'unknown'
+                    seed = 'unknown'
                     sampler = 'unknown'
                     steps = 'unknown'
-                    seed = 'unknown'
+                    cfg_scale = 'unknown'
+                    modelhash = 'unknown'
+                    width = 'unknown'
+                    height = 'unknown'
+                    aspect = 'unknown'
 
                 embedding = interactions.Embed()
                 embedding.title = 'Generated image'
@@ -199,9 +212,8 @@ async def channel_poster(channel, files, directory):
                 if model_name == -255:
                     model_name = 'unknown'
                 embedding.description = (f'Model: `{model_name}`\nHash `{modelhash}`, Sampler: `{sampler}`\n'
-                                         f'Steps: `{steps}`, Seed: `{seed}`\n'
-                                         f'Resolution: `{width}x{height} '
-                                         f'[AR: {round(width / height, 3)}]`')
+                                         f'Steps: `{steps}`, CFG: `{cfg_scale}`, Seed: `{seed}`\n'
+                                         f'Resolution: `{width}x{height} [AR: {aspect}]`')
                 image = interactions.File(file)
                 embedding.set_image(url=f"attachment://{x}")
 
