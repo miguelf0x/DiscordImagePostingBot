@@ -1,9 +1,7 @@
-
 import PromptTemplate
 
 
-def get_prompt( batch_count:int, steps:int, width:int, height:int, tags:str):
-
+def get_prompt(batch_count: int, steps: int, width: int, height: int, tags: str):
     prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
 
     if batch_count != 0:
@@ -17,4 +15,3 @@ def get_prompt( batch_count:int, steps:int, width:int, height:int, tags:str):
 
     prompt["prompt"] = str(tags)
     return prompt
-   

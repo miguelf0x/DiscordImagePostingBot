@@ -7,10 +7,10 @@ import requests_async as requests
 from PIL import Image, PngImagePlugin
 
 
-class ServerError (Exception): 
+class ServerError(Exception):
     __slots__ = ("code", "text")
 
-    def __init__(self, code:int, text:str) -> None:
+    def __init__(self, code: int, text: str) -> None:
         super().__init__()
         self.code = code
         self.text = text
@@ -18,10 +18,11 @@ class ServerError (Exception):
     def __str__(self) -> str:
         if self.code == -1:
             return "Error: Not connected to webui"
-        else: 
+        else:
             return f"Error: webui http code {self.code}, {self.text}"
 
-async def  __decorated_requests(req_lambda) -> requests.Response:
+
+async def __decorated_requests(req_lambda) -> requests.Response:
     try:
         res = await req_lambda()
     except Exception as e:
@@ -31,36 +32,40 @@ async def  __decorated_requests(req_lambda) -> requests.Response:
 
     if res.status_code >= 400:
         raise ServerError(res.status_code, f"Webiu reported an error: {res.text}")
-    
+
     return res
 
+
 async def user_interrupt(webui_url):
-    await __decorated_requests(lambda : requests.post(url=f'{webui_url}/sdapi/v1/interrupt'))
+    await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/interrupt'))
+
 
 async def get_check_online(webui_url):
     try:
         await __decorated_requests(lambda: requests.head(url=f'{webui_url}/'))
-    except Exception as e:
+    except Exception:
         return False
     return True
 
+
 async def get_progress(webui_url):
-    prog = await __decorated_requests(lambda : requests.get(url=f'{webui_url}/sdapi/v1/progress'))
+    prog = await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/progress'))
     prog = prog.json()
 
     job_progress = prog.get("progress")
     job_eta = prog.get("eta_relative")
     job_state = prog.get("state")
 
-    description = (f'Progress: `{round(job_progress*100, 2)}%`\n'
+    description = (f'Progress: `{round(job_progress * 100, 2)}%`\n'
                    f'Job ETA: `{round(job_eta)}s`\n'
                    f'Step: `{job_state["sampling_step"]} of '
                    f'{job_state["sampling_steps"]}`')
-    
+
     return description
 
+
 async def post_generate(prompt, webui_url, post_directory) -> list[str]:
-    response = await __decorated_requests(lambda : requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt))
+    response = await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt))
     files = []
     r = response.json()
 
@@ -73,8 +78,8 @@ async def post_generate(prompt, webui_url, post_directory) -> list[str]:
             "image": "data:image/png;base64," + item
         }
 
-        response2 = await __decorated_requests(lambda :  requests.post(url=f'{webui_url}/sdapi/v1/png-info',
-                                  json=png_payload))
+        response2 = await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/png-info',
+                                                                     json=png_payload))
 
         info = response2.json().get("info")
         info = info.split("\n")[2].split(',')
@@ -101,27 +106,32 @@ async def post_generate(prompt, webui_url, post_directory) -> list[str]:
         files.append(post_directory_img)
     return files
 
-async def post_refresh_ckpt( webui_url):
+
+async def post_refresh_ckpt(webui_url):
     await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/refresh-checkpoints'))
 
+
 async def get_sd_models(webui_url):
-    models =  await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/sd-models'))
+    models = await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/sd-models'))
     models = models.json()
     return models
+
 
 async def find_model_by_hash(webui_url, modelhash) -> typing.Union[str, None]:
     models = await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/sd-models'))
     models = models.json()
-    
+
     for value in models:
         if modelhash == value["hash"]:
             return value["model_name"]
 
     return None
 
+
 async def select_model(webui_url, model):
-   option_payload = {"sd_model_checkpoint": model}
-   await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload))
+    option_payload = {"sd_model_checkpoint": model}
+    await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload))
+
 
 async def get_options(webui_url):
     req_data = await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/options'))
