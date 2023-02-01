@@ -24,20 +24,31 @@ load_dotenv()
 
 bot = interactions.Client(token=os.environ['DISCORD_API_TOKEN'])
 webui_url = ""
-post_channel = None
-best_channel = None
-crsd_channel = None
-err_channel = None
+
+post_channel:interactions.Channel|None = None
+best_channel:interactions.Channel|None = None
+crsd_channel:interactions.Channel|None = None
+err_channel :interactions.Channel|None = None
 
 sd_models = None
+tasks = []
+
+def logged(func):
+    def inner(ctx:interactions.CommandContext, *args, **kwags):
+        logger.info(f"command {ctx.command.name}, channel = {ctx.channel_id},  args = {args}, kwargs = {kwags}")
+        return func(ctx, *args, **kwags)
+    inner.__name__ = func.__name__
+    return inner
 
 
 @bot.command()
+@logged
 async def help(ctx: interactions.CommandContext):
     """Show help message"""
     await UserInteraction.send_help_embed(ctx)
 
 @bot.command()
+@logged
 async def state(ctx: interactions.CommandContext):
     """Check current task state"""
     logger.debug("/state command")
@@ -83,6 +94,7 @@ async def state(ctx: interactions.CommandContext):
         ),
     ],
 )
+@logged
 async def gen(ctx: interactions.CommandContext, 
               tags: str, 
               image_count: int = 0, 
@@ -94,42 +106,49 @@ async def gen(ctx: interactions.CommandContext,
     """
 
     global post_channel
-
-    logger.info(f"/gen command. tags - {tags} img-count - {image_count} steps - {steps} width - {width} height - {height}")
+    global tasks
     
     if (width > 1500 or height > 1500):
-        await UserInteraction.send_error_embed(ctx, f'Sorry, but dont crash my GPU')
+        await UserInteraction.send_error_embed(ctx, "Generating image", f'Sorry, but dont crash my GPU')
         return
 
     await UserInteraction.send_working_embed(ctx, f'Your request is registered!')
 
     prompt = PromptParser.get_prompt(image_count, steps, width, height, tags)
-
-    try:
-        logger.debug("Coroutine started, generating...")
-        images = await WebuiRequests.post_generate(prompt=prompt, webui_url=webui_url, post_directory=post_directory)
-        
-        logger.debug("Generated, sending..")
-        for img in images:
-            await send_generated_file(img, post_channel)
-
-        logger.debug("Sent")
-
-    except Exception as e:
-        await __handle_webui_exception(e, "GEN_IMG")
-
    
+    async def pad():
+        try:
+            logger.debug("Coroutine started, generating...")
+            images = await WebuiRequests.post_generate(prompt=prompt, webui_url=webui_url, post_directory=post_directory)
+            
+            logger.debug("Generated, sending..")
+            for img in images:
+                await send_generated_file(img, post_channel)
+
+            logger.debug("Sent")
+
+        except Exception as e:
+            await __handle_webui_exception(e, "Generating image")
+
+    # Hehe, i think this is asyncio bug - if no refrences to task is alive, task will be garbarage collected. Lets create some dummy refrences? idk
+    tasks.append(asyncio.create_task(pad()))
+
+    
+    if len(tasks) > 15:
+        logger.debug("Clearing tasks ^)")
+        tasks = tasks[:10]
    
-
-
 @bot.command()
+@logged
 async def test(ctx: interactions.CommandContext):
     """
     Generate test image [512x512, Steps=100, tags=1girl, blue hair, bobcut, portrait, blush] \n
     LETS BURN YOUR GPU UAAAAAARGH
     """
+    global tasks
+
     prompt = PromptParser.get_prompt(1, 100, 512, 512, "1girl, blue hair, bobcut, portrait, blush")
-    
+
     await UserInteraction.send_success_embed(ctx, f'Your GPU is going to FIRE!')
 
     async def func():
@@ -143,9 +162,13 @@ async def test(ctx: interactions.CommandContext):
             await __handle_webui_exception(e,  "Generating image")
 
     logger.debug("Start generating coroutine")
-    await func()
+    tasks.append(asyncio.create_task(func()))
+
+    if len(tasks) > 15:
+        tasks = tasks[:10]
 
 @bot.command()
+@logged
 async def refresh(ctx: interactions.CommandContext):
     """Refresh models list"""
     try:
@@ -156,9 +179,10 @@ async def refresh(ctx: interactions.CommandContext):
         await __handle_webui_exception(e, "Sending refresh-checkpoints POST request")
 
 @bot.command()
+@logged
 async def models(ctx: interactions.CommandContext):
     """Show available models"""
-    print(f"Models")
+    logger.info("/models")
     try:
         models = await get_sd_models_cached()
         count = 0
@@ -184,6 +208,7 @@ async def models(ctx: interactions.CommandContext):
         ),
     ],
 )
+@logged
 async def find(ctx: interactions.CommandContext, modelhash: str):
     try:
         name = await WebuiRequests.find_model_by_hash(webui_url, modelhash)
@@ -209,6 +234,7 @@ async def find(ctx: interactions.CommandContext, modelhash: str):
         ),
     ],
 )
+@logged
 async def select(ctx: interactions.CommandContext, model: str):
     try:
         models = await get_sd_models_cached()
@@ -237,14 +263,26 @@ async def select(ctx: interactions.CommandContext, model: str):
     except Exception as e:
         await __handle_webui_exception(e, 'Selecting model')
 
-@bot.command()
+@bot.command(description="Skip current task")
+@logged
 async def skip(ctx: interactions.CommandContext):
     """Skip current task"""
     try:
-        await WebuiRequests.user_interrupt(ctx, webui_url)
+        await WebuiRequests.user_interrupt(webui_url)
         await UserInteraction.send_success_embed(ctx, 'Image generating interrupted')
     except Exception as e:
         await __handle_webui_exception(e, "Interrupting request")
+
+@bot.command(description="Get current active SD model")
+@logged
+async def current_model(ctx:interactions.CommandContext):
+    try:
+        data = await WebuiRequests.get_options(webui_url)
+        model_name = data["sd_model_checkpoint"]
+        await UserInteraction.send_info_embed(ctx, "Current SD model", model_name)
+    except Exception as e:
+        await __handle_webui_exception(e, "Checking current model")
+
 
 @bot.event
 async def on_ready():
@@ -273,7 +311,7 @@ async def __handle_webui_exception(e:Exception, action):
     global err_channel
     logger.error(e)
     if e is WebuiRequests.ServerError:
-        await send_offline_message(err_channel)
+        await send_offline_message()
     else:
         await UserInteraction.send_error_embed(err_channel, action, "Error processing request!")
 
@@ -297,10 +335,12 @@ def get_files(source) -> set:
             files.add(file)
     return files
 
-async def send_generated_file (path:str, channel:interactions.Channel):
+async def send_generated_file (path:str, channel:interactions.Channel|None):
     """
     Send file by name to chanel
     """
+    if channel == None: return
+
     name = os.path.basename(path).split('-')
 
     # Wanted image name format is {seed}-{sampler}-{steps}-{cfg_scale}{model_hash}-{width}-{height}.png

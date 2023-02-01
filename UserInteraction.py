@@ -72,6 +72,9 @@ async def send_success_embed(ctx, description):
 async def send_working_embed(ctx, description):
     await send_custom_embed(ctx, "Working!", description, 0x12B211)
 
+async def send_info_embed(ctx, title, description):
+    await send_custom_embed(ctx, title, description, "INFO")
+
 
 async def send_oops_embed(ctx, command):
     description = (f'Command argument is missing or wrong!\n'
@@ -80,6 +83,7 @@ async def send_oops_embed(ctx, command):
 
 async def send_help_embed(ctx):
     await send_custom_embed(ctx, "Available commands", HELP_TEXT["default"], "INFO")
+
 
 async def send_found_messages(channel:interactions.Channel, count):
     await __waitable(lambda: channel.send(f'Found {count} new picture(s). I will post them soon!'))
@@ -90,6 +94,11 @@ async def send_image(channel:interactions.Channel,  file:str, description:str):
    
     embedding.description = (description)
     image = interactions.File(file)
+    # b1 = interactions.Button(label="ouu my", style=interactions.ButtonStyle.DANGER, custom_id="2")
+    # b2 = interactions.Button(label="no, dude", style=interactions.ButtonStyle.PRIMARY, custom_id="234")
+
+    # row = interactions.ActionRow.new(b1, b2)
+    
     embedding.set_image(url=f"attachment://{os.path.basename(file)}")
 
-    await __waitable(lambda: channel.send(files=image, embeds=embedding))
+    await __waitable(lambda: channel.send(files=image,  embeds=embedding))
