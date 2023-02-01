@@ -1,0 +1,5 @@
+discord_py_interactions==4.3.4
+Pillow==9.4.0
+python-dotenv==0.21.1
+PyYAML==6.0
+requests_async==0.6.2
