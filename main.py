@@ -1,12 +1,10 @@
 # Tikhomirov Mikhail, 2023
 # github.com/miguelf0x
 
+
 import asyncio
 import os
 
-import discord
-from PIL import Image
-from discord.ext import commands
 from dotenv import load_dotenv
 
 import PromptParser
@@ -14,82 +12,148 @@ import TracedValue
 import WebuiRequests
 import UserInteraction
 import ConfigHandler
+import interactions
+
+load_dotenv()
+
+bot = interactions.Client(token=os.environ['DISCORD_API_TOKEN'])
+webui_url = ""
 
 
-bot = commands.Bot(command_prefix="$", intents=discord.Intents.all())
+@bot.command()
+async def help(ctx: interactions.CommandContext):
+    """Show help message"""
+    await UserInteraction.send_help_embed(ctx)
 
 
-@commands.command(aliases=['h', 'help', 'commands'])
-async def man(ctx):
-    await ctx.send(embed=UserInteraction.main_help_embed())
+@bot.command()
+async def state(ctx: interactions.CommandContext):
+    """Check current task state"""
+    if online == 0:
+        await WebuiRequests.get_progress(ctx, webui_url)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
-@commands.command(aliases=['prog', 'state'])
-async def progress(ctx):
-    await WebuiRequests.get_progress(ctx, webui_url)
+@bot.command(
+    name="gen",
+    description="Generate image using txt2img",
+    options=[
+        interactions.Option(
+            name="tags",
+            description="Image tags divided with comma",
+            type=interactions.OptionType.STRING,
+            required=True,
+        ),
+        interactions.Option(
+            name="image_count",
+            description="How many pictures to generate in parallel [1-8]",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+        interactions.Option(
+            name="steps",
+            description="Interference steps count [0-200]",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+        interactions.Option(
+            name="width",
+            description="Image width (px)",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+        interactions.Option(
+            name="height",
+            description="Image height (px)",
+            type=interactions.OptionType.INTEGER,
+            required=False,
+        ),
+    ],
+)
+async def gen(ctx: interactions.CommandContext, tags: str, image_count: int = 0, steps: int = 0,
+              width: int = 0, height: int = 0):
+    if online == 0:
+        await UserInteraction.send_success_embed(ctx, "Your request is registered")
+        PromptParser.image_gen(ctx, webui_url, post_directory, image_count, steps, width, height, tags)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
-@commands.command(aliases=['g', 'generate'])
-async def gen(ctx, *, arg):
-    PromptParser.image_gen(ctx, arg, webui_url, post_directory)
+@bot.command()
+async def test(ctx: interactions.CommandContext):
+    """Generate test image [512x512, Steps=100, tags=1girl, blue hair, bobcut, portrait, blush]"""
+    if online == 0:
+        await UserInteraction.send_success_embed(ctx, "Your request is registered")
+        tags = "1girl, blue hair, bobcut, portrait, blush"
+        PromptParser.image_gen(ctx, webui_url, post_directory, 1, 100, 512, 512, tags)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
-@gen.error
-async def gen_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "generate")
+@bot.command()
+async def refresh(ctx: interactions.CommandContext):
+    """Refresh models list"""
+    if online == 0:
+        await WebuiRequests.post_refresh_ckpt(ctx, webui_url)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
-@commands.command(aliases=['b', 'batch', 'mass'])
-async def batch_gen(ctx, *, arg):
-    await PromptParser.mass_gen(ctx, arg, webui_url, post_directory)
+@bot.command()
+async def models(ctx: interactions.CommandContext):
+    """Show available models"""
+    if online == 0:
+        await WebuiRequests.get_sd_models(ctx, webui_url, "1")
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
-@batch_gen.error
-async def batch_gen_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "batch")
+@bot.command(
+    name="find",
+    description="Search model by hash",
+    options=[
+        interactions.Option(
+            name="modelhash",
+            description="Searched model hash",
+            type=interactions.OptionType.STRING,
+            required=True,
+        ),
+    ],
+)
+async def find(ctx: interactions.CommandContext, modelhash: str):
+    if online == 0:
+        await WebuiRequests.find_model_by_hash(ctx, webui_url, modelhash, True)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
-@commands.command(aliases=['ref', 'refresh'])
-async def refresh_ckpt(ctx):
-    await WebuiRequests.post_refresh_ckpt(ctx, webui_url)
+@bot.command(
+    name="select",
+    description="Select model by hash or by /models id",
+    options=[
+        interactions.Option(
+            name="model",
+            description="Model hash or id from /models",
+            type=interactions.OptionType.STRING,
+            required=True,
+        ),
+    ],
+)
+async def select(ctx: interactions.CommandContext, model: str):
+    if online == 0:
+        await WebuiRequests.select_model_by_arg(ctx, webui_url, model)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
-@commands.command(aliases=['models', 'list_models'])
-async def show_ckpt(ctx):
-    await WebuiRequests.get_sd_models(ctx, webui_url, "1")
-
-
-@commands.command(aliases=['find_model', 'find'])
-async def find_ckpt(ctx, arg):
-    await WebuiRequests.find_model_by_hash(ctx, webui_url, arg)
-
-
-@find_ckpt.error
-async def find_ckpt_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "find_ckpt")
-
-
-@commands.command(aliases=['set_model', 'set'])
-async def set_ckpt(ctx, arg):
-    await WebuiRequests.select_model_by_arg(ctx, webui_url, arg)
-
-
-@set_ckpt.error
-async def set_ckpt_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if error.param.name == "arg":
-            await UserInteraction.send_oops_embed(ctx, "set_ckpt")
-
-
-@commands.command(aliases=['stop', 'halt'])
-async def interrupt(ctx):
-    await WebuiRequests.user_interrupt(ctx, webui_url)
+@bot.command()
+async def skip(ctx: interactions.CommandContext):
+    """Skip current task"""
+    if online == 0:
+        await WebuiRequests.user_interrupt(ctx, webui_url)
+    else:
+        await UserInteraction.send_error_embed(ctx, "Receiveing request", "WebUI offline")
 
 
 def get_files(source):
@@ -115,13 +179,9 @@ async def channel_poster(channel, files, directory):
 
             for x in diff:
                 file = f'{directory}/{x}'
-
-                img = Image.open(file)
-                width, height = img.size
-                img.close()
                 name = x.split('-')
 
-                # Wanted image name format is seed-sampler-steps-model_hash
+                # Wanted image name format is {seed}-{sampler}-{steps}-{cfg_scale}{model_hash}-{width}-{height}.png
                 # So we create checks for any other format
 
                 if len(name) > 1:
@@ -129,45 +189,90 @@ async def channel_poster(channel, files, directory):
                     seed = name[0]
                     sampler = name[1]
                     steps = name[2]
-                    modelhash = name[3].split('.')[0]
+                    cfg_scale = name[3]
+                    modelhash = name[4]
+                    width = name[5]
+                    height = name[6].split('.')[0]
+                    aspect = round(int(width) / int(height), 4)
 
                 else:
 
-                    modelhash = 'unknown'
+                    seed = 'unknown'
                     sampler = 'unknown'
                     steps = 'unknown'
-                    seed = 'unknown'
+                    cfg_scale = 'unknown'
+                    modelhash = 'unknown'
+                    width = 'unknown'
+                    height = 'unknown'
+                    aspect = 'unknown'
 
-                embedding = UserInteraction.EMBED
+                embedding = interactions.Embed()
                 embedding.title = 'Generated image'
-                embedding.description = (f'Model hash: `{modelhash}`, Sampler: `{sampler}`\n'
-                                         f'Steps: `{steps}`, Seed: `{seed}`\n'
-                                         f'Resolution: `{width}x{height} '
-                                         f'[AR: {round(width / height, 3)}]`')
-                image = discord.File(file, filename=x)
-                embedding.set_image(url="attachment://" + x)
+                model_name = await WebuiRequests.find_model_by_hash(channel, webui_url, modelhash, False)
+                if model_name == -255:
+                    model_name = 'unknown'
+                embedding.description = (f'Model: `{model_name}`\nHash `{modelhash}`, Sampler: `{sampler}`\n'
+                                         f'Steps: `{steps}`, CFG: `{cfg_scale}`, Seed: `{seed}`\n'
+                                         f'Resolution: `{width}x{height} [AR: {aspect}]`')
+                image = interactions.File(file)
+                embedding.set_image(url=f"attachment://{x}")
 
-                await channel.send(file=image, embed=embedding)
+                await channel.send(files=image, embeds=embedding)
                 await asyncio.sleep(send_interval)
+
+
+async def check_state(error_channel):
+
+    errorfile = '.temp/.error'
+    offlinefile = '.temp/.offline'
+
+    global online
+
+    if os.path.exists(errorfile):
+        with open(errorfile) as f:
+            error = str(f.readline()).split(": ")
+            await UserInteraction.send_error_embed(error_channel, error[0], error[1])
+        os.remove(errorfile)
+
+    offline = await WebuiRequests.get_check_online(webui_url)
+
+    if offline is not False:
+        if not os.path.exists(offlinefile):
+            online = -1
+            await UserInteraction.send_custom_embed(error_channel,
+                                                    "WebUI is offline",
+                                                    "Your prompts will NOT be executed",
+                                                    "CRIT")
+            with open(offlinefile, 'w') as f:
+                f.write(offline[0] + str(offline[1]))
+    else:
+        if os.path.exists(offlinefile):
+            os.remove(offlinefile)
+            await UserInteraction.send_custom_embed(error_channel,
+                                                    "WebUI is online",
+                                                    "Now your prompts will be executed",
+                                                    "GOOD")
+        online = 0
 
 
 @bot.event
 async def on_ready():
-    post_channel = bot.get_channel(int(POST_CHANNEL_ID))
-    best_channel = bot.get_channel(int(BEST_CHANNEL_ID))
-    crsd_channel = bot.get_channel(int(CRSD_CHANNEL_ID))
+    post_channel = await interactions.get(bot, interactions.Channel, object_id=POST_CHANNEL_ID)
+    best_channel = await interactions.get(bot, interactions.Channel, object_id=BEST_CHANNEL_ID)
+    crsd_channel = await interactions.get(bot, interactions.Channel, object_id=CRSD_CHANNEL_ID)
+    err_channel = await interactions.get(bot, interactions.Channel, object_id=ERR_CHANNEL_ID)
     post_files = TracedValue.TracedValue(get_files(post_directory))
     best_files = TracedValue.TracedValue(get_files(best_directory))
     crsd_files = TracedValue.TracedValue(get_files(crsd_directory))
 
     while True:
+        await check_state(err_channel)
         await channel_poster(post_channel, post_files, post_directory)
         await channel_poster(best_channel, best_files, best_directory)
         await channel_poster(crsd_channel, crsd_files, crsd_directory)
 
 
 if __name__ == "__main__":
-
     # load .env
     load_dotenv()
 
@@ -183,37 +288,10 @@ if __name__ == "__main__":
     enable_img_announce = data["enable_image_announce"]
 
     # assign envvars and start bot
-    POST_CHANNEL_ID = os.environ['POST_CHANNEL_ID']
-    BEST_CHANNEL_ID = os.environ['BEST_CHANNEL_ID']
-    CRSD_CHANNEL_ID = os.environ['CRSD_CHANNEL_ID']
+    POST_CHANNEL_ID = int(os.environ['POST_CHANNEL_ID'])
+    BEST_CHANNEL_ID = int(os.environ['BEST_CHANNEL_ID'])
+    CRSD_CHANNEL_ID = int(os.environ['CRSD_CHANNEL_ID'])
+    ERR_CHANNEL_ID = int(os.environ['ERR_CHANNEL_ID'])
+    online = None
 
-    bot.remove_command("help")
-
-    # noinspection PyTypeChecker
-    bot.add_command(man)
-
-    # noinspection PyTypeChecker
-    bot.add_command(progress)
-
-    # noinspection PyTypeChecker
-    bot.add_command(gen)
-
-    # noinspection PyTypeChecker
-    bot.add_command(batch_gen)
-
-    # noinspection PyTypeChecker
-    bot.add_command(refresh_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(show_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(find_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(set_ckpt)
-
-    # noinspection PyTypeChecker
-    bot.add_command(interrupt)
-
-    bot.run(os.environ['DISCORD_API_KEY'])
+    bot.start()
