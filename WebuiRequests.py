@@ -1,37 +1,52 @@
 import base64
 import io
 import os
+import typing
 
-import requests
+import requests_async as requests
 from PIL import Image, PngImagePlugin
 
-import UserInteraction
 
+class ServerError (Exception): 
+    __slots__ = ("code", "text")
 
-async def user_interrupt(ctx, webui_url):
+    def __init__(self, code:int, text:str) -> None:
+        super().__init__()
+        self.code = code
+        self.text = text
+
+    def __str__(self) -> str:
+        if self.code == -1:
+            return "Error: Not connected to webui"
+        else: 
+            return f"Error: webui http code {self.code}, {self.text}"
+
+async def  __decorated_requests(req_lambda) -> requests.Response:
     try:
-        requests.post(url=f'{webui_url}/sdapi/v1/interrupt')
+        res = await req_lambda()
     except Exception as e:
-        await UserInteraction.send_error_embed(ctx, "Sending interrupt POST request", e)
-        return
+        if e is requests.exceptions.ConnectionError:
+            raise ServerError(-1, "Webui is down")
+        raise e
 
-    await UserInteraction.send_success_embed(ctx, 'Image generating interrupted')
+    if res.status_code >= 400:
+        raise ServerError(res.status_code, f"Webiu reported an error: {res.text}")
+    
+    return res
 
+async def user_interrupt(webui_url):
+    await __decorated_requests(lambda : requests.post(url=f'{webui_url}/sdapi/v1/interrupt'))
 
 async def get_check_online(webui_url):
     try:
-        requests.post(url=f'{webui_url}/app_id')
+        await __decorated_requests(lambda: requests.head(url=f'{webui_url}/'))
     except Exception as e:
-        return ['WebUI is offline: ', e]
-    return False
+        return False
+    return True
 
-
-async def get_progress(ctx, webui_url):
-    try:
-        prog = (requests.get(url=f'{webui_url}/sdapi/v1/progress')).json()
-    except Exception as e:
-        await UserInteraction.send_error_embed(ctx, "Sending progress GET request", e)
-        return
+async def get_progress(webui_url):
+    prog = await __decorated_requests(lambda : requests.get(url=f'{webui_url}/sdapi/v1/progress'))
+    prog = prog.json()
 
     job_progress = prog.get("progress")
     job_eta = prog.get("eta_relative")
@@ -41,26 +56,12 @@ async def get_progress(ctx, webui_url):
                    f'Job ETA: `{round(job_eta)}s`\n'
                    f'Step: `{job_state["sampling_step"]} of '
                    f'{job_state["sampling_steps"]}`')
+    
+    return description
 
-    await UserInteraction.send_custom_embed(ctx, 'Current task state', description, "INFO")
-
-
-def post_generate(ctx, prompt, webui_url, post_directory):
-    try:
-        response = requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt)
-    except Exception as e:
-        print(e)
-        # await UserInteraction.send_error_embed(ctx, "Sending txt2img POST request", e)
-        with open('.temp/.error', 'w') as f:
-            f.write(f'Sending txt2img POST request: {e}')
-        return
-
-    if response.status_code > 400:
-        # await UserInteraction.send_error_embed(ctx, "Generating image", response.text)
-        with open('.temp/.error', 'w') as f:
-            f.write(f'Generating image: {response.text}')
-        return 228
-
+async def post_generate(prompt, webui_url, post_directory) -> list[str]:
+    response = await __decorated_requests(lambda : requests.post(url=f'{webui_url}/sdapi/v1/txt2img', json=prompt))
+    files = []
     r = response.json()
 
     os.makedirs(post_directory, exist_ok=True)
@@ -72,8 +73,8 @@ def post_generate(ctx, prompt, webui_url, post_directory):
             "image": "data:image/png;base64," + item
         }
 
-        response2 = requests.post(url=f'{webui_url}/sdapi/v1/png-info',
-                                  json=png_payload)
+        response2 = await __decorated_requests(lambda :  requests.post(url=f'{webui_url}/sdapi/v1/png-info',
+                                  json=png_payload))
 
         info = response2.json().get("info")
         info = info.split("\n")[2].split(',')
@@ -97,89 +98,32 @@ def post_generate(ctx, prompt, webui_url, post_directory):
         post_directory_img = os.path.join(post_directory,
                                           f'{seed}-{sampler}-{steps}-{cfg_scale}-{model_hash}-{res[0]}-{res[1]}.png')
         image.save(post_directory_img, pnginfo=pnginfo)
+        files.append(post_directory_img)
+    return files
 
+async def post_refresh_ckpt( webui_url):
+    await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/refresh-checkpoints'))
 
-async def post_refresh_ckpt(ctx, webui_url):
-    try:
-        response = requests.post(url=f'{webui_url}/sdapi/v1/refresh-checkpoints')
-    except Exception as e:
-        await UserInteraction.send_error_embed(ctx, "Sending refresh-checkpoints POST request", e)
-        return
-
-    if response.status_code > 400:
-        await UserInteraction.send_error_embed(ctx, "Checkpoints refreshing", response.text)
-        return 228
-    else:
-        await UserInteraction.send_success_embed(ctx, 'Checkpoints list refreshed')
-
-
-async def get_sd_models(ctx, webui_url, show_list):
-    try:
-        models = requests.get(url=f'{webui_url}/sdapi/v1/sd-models')
-    except Exception as e:
-        await UserInteraction.send_error_embed(ctx, "Sending sd-models GET request", e)
-        return
-
+async def get_sd_models(webui_url):
+    models =  await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/sd-models'))
     models = models.json()
-
-    if show_list == "1":
-        models_msg = ""
-        count = 0
-        for count, value in enumerate(models):
-            models_msg += f"[{count+1}] Checkpoint: `{value['model_name']}`, " \
-                          f"Hash: `{value['hash']}`\n"
-        models_msg = f"Found {count+1} models:\n" + models_msg
-        await UserInteraction.send_custom_embed(ctx, 'Available models list', models_msg, "MESG")
     return models
 
-
-async def find_model_by_hash(ctx, webui_url, modelhash, show):
-    try:
-        models = requests.get(url=f'{webui_url}/sdapi/v1/sd-models')
-    except Exception as e:
-        await UserInteraction.send_error_embed(ctx, "Sending sd-models GET request", e)
-        return
-
+async def find_model_by_hash(webui_url, modelhash) -> typing.Union[str, None]:
+    models = await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/sd-models'))
     models = models.json()
-
-    for count, value in enumerate(models):
+    
+    for value in models:
         if modelhash == value["hash"]:
-            if show is True:
-                await UserInteraction.send_success_embed(ctx, f'Found model `{value["model_name"]}` '
-                                                              f'with hash `{value["hash"]}`')
             return value["model_name"]
 
-    if show is True:
-        await UserInteraction.send_error_embed(ctx, f"Checkpoints search", f'No checkpoints '
-                                                                           f'found with hash {modelhash}')
-    return -255
+    return None
 
+async def select_model(webui_url, model):
+   option_payload = {"sd_model_checkpoint": model}
+   await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload))
 
-# TODO: NEED CACHING RESPONSE AFTER get_sd_models()
-async def select_model_by_arg(ctx, webui_url, argument):
-    resp = await get_sd_models(ctx, webui_url, 0)
-    option_payload = {}
-    model_title = ""
-
-    if len(argument) > 2:
-        for count, value in enumerate(resp):
-            if value["hash"] == argument:
-                model_title = value["title"]
-                option_payload = {"sd_model_checkpoint": model_title}
-    else:
-        model_title = resp[int(argument)-1]["title"]
-        option_payload = {"sd_model_checkpoint": model_title}
-
-    try:
-        await UserInteraction.send_success_embed(ctx, f'Checkpoint `{model_title}` will be set')
-        post_result = requests.post(url=f'{webui_url}/sdapi/v1/options',
-                                    json=option_payload)
-    except Exception as e:
-        await UserInteraction.send_error_embed(ctx, "Sending options POST request", e)
-        return
-
-    if post_result.status_code > 400:
-        await UserInteraction.send_error_embed(ctx, 'Selecting model', post_result.text)
-        return 228
-    else:
-        await UserInteraction.send_success_embed(ctx, f'Checkpoint `{model_title}` is now in use')
+async def get_options(webui_url):
+    req_data = await __decorated_requests(lambda: requests.get(url=f'{webui_url}/sdapi/v1/options'))
+    js_data = req_data.json()
+    return js_data

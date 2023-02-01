@@ -1,10 +1,8 @@
-import threading
 
 import PromptTemplate
-import WebuiRequests
 
 
-def image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height, tags):
+def get_prompt( batch_count:int, steps:int, width:int, height:int, tags:str):
 
     prompt = dict(PromptTemplate.PROMPT_TEMPLATE)
 
@@ -18,7 +16,5 @@ def image_gen(ctx, webui_url, post_directory, batch_count, steps, width, height,
         prompt["height"] = str(height)
 
     prompt["prompt"] = str(tags)
-
-    gen_thread = threading.Thread(target=WebuiRequests.post_generate,
-                                  args=(ctx, prompt, webui_url, post_directory))
-    gen_thread.start()
+    return prompt
+   
