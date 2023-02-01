@@ -36,7 +36,7 @@ EMBED = interactions.Embed(
 sleep_timer = 1
 sleep_lock = threading.Lock()
 
-async def __waitable_lock(func):
+async def __waitable(func):
     await asyncio.sleep(sleep_timer)
     return await func()
 
@@ -60,7 +60,7 @@ async def send_custom_embed(ctx, title, description, embed_type):
         color=color,
         description=description
     )
-    await __waitable_lock(lambda: ctx.send(embeds=embedding))
+    await __waitable(lambda: ctx.send(embeds=embedding))
 
 async def send_error_embed(ctx, action, error):
     print(f"[ERROR]: While {action}\n{error}")
@@ -68,6 +68,10 @@ async def send_error_embed(ctx, action, error):
 
 async def send_success_embed(ctx, description):
     await send_custom_embed(ctx, "Success!", description, "GOOD")
+
+async def send_working_embed(ctx, description):
+    await send_custom_embed(ctx, "Working!", description, 0x12B211)
+
 
 async def send_oops_embed(ctx, command):
     description = (f'Command argument is missing or wrong!\n'
@@ -78,7 +82,7 @@ async def send_help_embed(ctx):
     await send_custom_embed(ctx, "Available commands", HELP_TEXT["default"], "INFO")
 
 async def send_found_messages(channel:interactions.Channel, count):
-    await __waitable_lock(lambda: channel.send(f'Found {count} new picture(s). I will post them soon!'))
+    await __waitable(lambda: channel.send(f'Found {count} new picture(s). I will post them soon!'))
 
 async def send_image(channel:interactions.Channel,  file:str, description:str):
     embedding = interactions.Embed()
@@ -88,4 +92,4 @@ async def send_image(channel:interactions.Channel,  file:str, description:str):
     image = interactions.File(file)
     embedding.set_image(url=f"attachment://{os.path.basename(file)}")
 
-    await __waitable_lock(lambda: channel.send(files=image, embeds=embedding))
+    await __waitable(lambda: channel.send(files=image, embeds=embedding))

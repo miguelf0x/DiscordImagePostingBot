@@ -6,7 +6,7 @@ import asyncio
 import os
 import threading
 import time
-
+import logging
 from dotenv import load_dotenv
 
 import PromptParser
@@ -15,6 +15,10 @@ import WebuiRequests
 import UserInteraction
 import ConfigHandler
 import interactions
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("Main")
+logger.setLevel(level=logging.DEBUG)
 
 load_dotenv()
 
@@ -25,13 +29,7 @@ best_channel = None
 crsd_channel = None
 err_channel = None
 
-
-async def __handle_webui_exception(e:Exception, ctx: interactions.CommandContext, action):
-    if e is WebuiRequests.ServerError:
-        await UserInteraction.send_error_embed(ctx, action, e)
-    else:
-        await UserInteraction.send_error_embed(ctx, action, "Error processing request!")
-    print(e)
+sd_models = None
 
 
 @bot.command()
@@ -42,11 +40,12 @@ async def help(ctx: interactions.CommandContext):
 @bot.command()
 async def state(ctx: interactions.CommandContext):
     """Check current task state"""
+    logger.debug("/state command")
     try:
         description = await WebuiRequests.get_progress(webui_url)
         await UserInteraction.send_custom_embed(ctx, 'Current task state', description, "INFO")
     except Exception as e:
-        await __handle_webui_exception(e, ctx, 'GET_STATUS')
+        await __handle_webui_exception(e, 'GET_STATUS')
     
 @bot.command(
     name="gen",
@@ -84,30 +83,43 @@ async def state(ctx: interactions.CommandContext):
         ),
     ],
 )
-async def gen(ctx: interactions.CommandContext, tags: str, image_count: int = 0, steps: int = 0,
-              width: int = 0, height: int = 0):
+async def gen(ctx: interactions.CommandContext, 
+              tags: str, 
+              image_count: int = 0, 
+              steps: int = 0,
+              width: int = 0, 
+              height: int = 0):
+    """
+    Processing /gen request
+    """
+
+    global post_channel
+
+    logger.info(f"/gen command. tags - {tags} img-count - {image_count} steps - {steps} width - {width} height - {height}")
     
+    if (width > 1500 or height > 1500):
+        await UserInteraction.send_error_embed(ctx, f'Sorry, but dont crash my GPU')
+        return
+
+    await UserInteraction.send_working_embed(ctx, f'Your request is registered!')
+
     prompt = PromptParser.get_prompt(image_count, steps, width, height, tags)
-    
-    asyncio.create_task(ctx.send("Start generating!"))
-    
-    async def func():
-        try:
-            print(f"Generating {tags}")
-            images = await WebuiRequests.post_generate(prompt=prompt, webui_url=webui_url, post_directory=post_directory)
-            
-            print(f"Generated")
-            for img in images:
-                await send_generated_file(img, post_channel)
 
-            print(f"Sent")
+    try:
+        logger.debug("Coroutine started, generating...")
+        images = await WebuiRequests.post_generate(prompt=prompt, webui_url=webui_url, post_directory=post_directory)
+        
+        logger.debug("Generated, sending..")
+        for img in images:
+            await send_generated_file(img, post_channel)
 
-        except Exception as e:
-            await __handle_webui_exception(e, ctx, "GEN_IMG")
-            
-    print(f"Execute task")
-    asyncio.create_task(func())
-    print(f"End")
+        logger.debug("Sent")
+
+    except Exception as e:
+        await __handle_webui_exception(e, "GEN_IMG")
+
+   
+   
 
 
 @bot.command()
@@ -118,9 +130,9 @@ async def test(ctx: interactions.CommandContext):
     """
     prompt = PromptParser.get_prompt(1, 100, 512, 512, "1girl, blue hair, bobcut, portrait, blush")
     
-    await ctx.send("Start generating!")
+    await UserInteraction.send_success_embed(ctx, f'Your GPU is going to FIRE!')
 
-    async def generator():
+    async def func():
         try:
             images = await WebuiRequests.post_generate(prompt=prompt, webui_url=webui_url, post_directory=post_directory)
             
@@ -128,27 +140,27 @@ async def test(ctx: interactions.CommandContext):
                 await send_generated_file(img, post_channel)
 
         except Exception as e:
-            await __handle_webui_exception(e, ctx, "Generating image")
+            await __handle_webui_exception(e,  "Generating image")
 
-    asyncio.create_task(generator())
-
+    logger.debug("Start generating coroutine")
+    await func()
 
 @bot.command()
 async def refresh(ctx: interactions.CommandContext):
     """Refresh models list"""
     try:
-        WebuiRequests.post_refresh_ckpt(webui_url)
+        await WebuiRequests.post_refresh_ckpt(webui_url)
+        await get_sd_models_cached(refresh=True)
         await UserInteraction.send_success_embed(ctx, 'Checkpoints list refreshed')
     except Exception as e:
-        await __handle_webui_exception(e, ctx, "Sending refresh-checkpoints POST request")
-
+        await __handle_webui_exception(e, "Sending refresh-checkpoints POST request")
 
 @bot.command()
 async def models(ctx: interactions.CommandContext):
     """Show available models"""
     print(f"Models")
     try:
-        models = await WebuiRequests.get_sd_models(webui_url)
+        models = await get_sd_models_cached()
         count = 0
         models_msg = ""
         for count, value in enumerate(models):
@@ -156,10 +168,9 @@ async def models(ctx: interactions.CommandContext):
                       f"Hash: `{value['hash']}`\n"
         models_msg = f"Found {count+1} models:\n" + models_msg
         await UserInteraction.send_custom_embed(ctx, 'Available models list', models_msg, "MESG")
-    except Exception as e:
-        await __handle_webui_exception(e, ctx, "Checking avalibe models")
-    
 
+    except Exception as e:
+        await __handle_webui_exception(e, "Checking avalibe models")
 
 @bot.command(
     name="find",
@@ -184,13 +195,11 @@ async def find(ctx: interactions.CommandContext, modelhash: str):
                                                                                f'found with hash {modelhash}')
 
     except Exception as e:
-        await __handle_webui_exception(e, ctx, "Selecting model")
+        await __handle_webui_exception(e, "Selecting model")
     
-
-
 @bot.command(
     name="select",
-    description="Select model by hash or by /models id",
+    description="Select model by hash or by /models id(haha not works yet)",
     options=[
         interactions.Option(
             name="model",
@@ -202,12 +211,31 @@ async def find(ctx: interactions.CommandContext, modelhash: str):
 )
 async def select(ctx: interactions.CommandContext, model: str):
     try:
-        setting = WebuiRequests.find_model_by_hash(webui_url, model)
-        WebuiRequests.select_model_by_hash(setting)
-        await UserInteraction.send_success_embed(ctx, f'Checkpoint `{setting}` is now in use')
-    except Exception as e:
-        await __handle_webui_exception(e, ctx, 'Selecting model')
+        models = await get_sd_models_cached()
+        select_by_index = -1
+        try:
+            select_by_index = int(model)
+        except Exception as e:
+            pass
+        
+        select_payload = None
 
+        for ind, value in enumerate(models):
+            if value["hash"] == model or ind == select_by_index:
+                select_payload = value["title"]
+                break
+
+        if select_payload == None:
+            await UserInteraction.send_error_embed(ctx, "Selecting model", "Cant find model!")
+            return
+        
+        await UserInteraction.send_working_embed(ctx, f'Trying to select checkpoint `{select_payload}` ')    
+        
+        await WebuiRequests.select_model(webui_url, select_payload)
+
+        await UserInteraction.send_success_embed(ctx, f'Checkpoint `{select_payload}` is now in use')
+    except Exception as e:
+        await __handle_webui_exception(e, 'Selecting model')
 
 @bot.command()
 async def skip(ctx: interactions.CommandContext):
@@ -216,10 +244,52 @@ async def skip(ctx: interactions.CommandContext):
         await WebuiRequests.user_interrupt(ctx, webui_url)
         await UserInteraction.send_success_embed(ctx, 'Image generating interrupted')
     except Exception as e:
-        await __handle_webui_exception(e, ctx, "Interrupting request")
+        await __handle_webui_exception(e, "Interrupting request")
 
+@bot.event
+async def on_ready():
+    global post_channel
+    global best_channel
+    global crsd_channel
+    global err_channel
+
+    post_channel = await interactions.get(bot, interactions.Channel, object_id=POST_CHANNEL_ID)
+    best_channel = await interactions.get(bot, interactions.Channel, object_id=BEST_CHANNEL_ID)
+    crsd_channel = await interactions.get(bot, interactions.Channel, object_id=CRSD_CHANNEL_ID)
+    err_channel = await interactions.get(bot, interactions.Channel, object_id=ERR_CHANNEL_ID)
+    
+    await channel_poster(post_channel, post_files, post_directory)
+    await channel_poster(best_channel, best_files, best_directory)
+    await channel_poster(crsd_channel, crsd_files, crsd_directory)
+
+    state = False
+    while True:
+        await asyncio.sleep(check_interval)
+        new_state = await WebuiRequests.get_check_online(webui_url)
+        await check_state_change(state, new_state)
+        state = new_state
+                
+async def __handle_webui_exception(e:Exception, action):
+    global err_channel
+    logger.error(e)
+    if e is WebuiRequests.ServerError:
+        await send_offline_message(err_channel)
+    else:
+        await UserInteraction.send_error_embed(err_channel, action, "Error processing request!")
+
+
+async def get_sd_models_cached(refresh = False):
+    global sd_models
+
+    if sd_models == None or refresh:
+        sd_models = await WebuiRequests.get_sd_models(webui_url)
+
+    return sd_models
 
 def get_files(source) -> set:
+    """
+    List all files in directory
+    """
     files = set()
     for file in os.listdir(source):
         fullpath = os.path.join(source, file)
@@ -228,7 +298,9 @@ def get_files(source) -> set:
     return files
 
 async def send_generated_file (path:str, channel:interactions.Channel):
-    
+    """
+    Send file by name to chanel
+    """
     name = os.path.basename(path).split('-')
 
     # Wanted image name format is {seed}-{sampler}-{steps}-{cfg_scale}{model_hash}-{width}-{height}.png
@@ -266,6 +338,9 @@ async def send_generated_file (path:str, channel:interactions.Channel):
                                 f'Resolution: `{width}x{height} [AR: {aspect}]`')
 
 async def channel_poster(channel:interactions.Channel, files:set, directory:str):
+    """
+    Check all files in directory and send all files that not in `files` set to channel
+    """
     current_files = get_files(directory)
     diffs = current_files - files
     
@@ -280,51 +355,25 @@ async def channel_poster(channel:interactions.Channel, files:set, directory:str)
         await send_generated_file(file, channel)
         files.add(file_base_name)
 
-async def send_offline_message(error_channel):
-     await UserInteraction.send_custom_embed(error_channel,
-                                                "WebUI is offline",
-                                                f"Your prompts will NOT be executed",
-                                                "CRIT")
+async def send_offline_message():
+     await UserInteraction.send_custom_embed(err_channel,
+                                            "WebUI is offline",
+                                            f"Your prompts will NOT be executed",
+                                             "CRIT")
 
-async def send_online_message(error_channel):
-    await UserInteraction.send_custom_embed(error_channel,
+async def send_online_message():
+    await UserInteraction.send_custom_embed(err_channel,
                                                     "WebUI is online",
                                                     "Now your prompts will be executed",
                                                     "GOOD")
 
-
-async def check_state_change(error_channel:interactions.Channel, last:bool, new:bool):
+async def check_state_change(last:bool, new:bool):
+    global err_channel
     if last == new : return
     # if new : 
-    #     await send_online_message(error_channel)
+    #     await send_online_message()
     # else: 
-    #     await send_offline_message(error_channel)
-
-@bot.event
-async def on_ready():
-    global post_channel
-    global best_channel
-    global crsd_channel
-    global err_channel
-
-    post_channel = await interactions.get(bot, interactions.Channel, object_id=POST_CHANNEL_ID)
-    best_channel = await interactions.get(bot, interactions.Channel, object_id=BEST_CHANNEL_ID)
-    crsd_channel = await interactions.get(bot, interactions.Channel, object_id=CRSD_CHANNEL_ID)
-    err_channel = await interactions.get(bot, interactions.Channel, object_id=ERR_CHANNEL_ID)
-    
-    await channel_poster(post_channel, post_files, post_directory)
-    await channel_poster(best_channel, best_files, best_directory)
-    await channel_poster(crsd_channel, crsd_files, crsd_directory)
-
-    async def check_thread():
-        state = False
-        while True:
-            await asyncio.sleep(check_interval)
-            new_state = await WebuiRequests.get_check_online(webui_url)
-            await check_state_change(err_channel, state, new_state)
-            state = new_state
-                
-    asyncio.create_task(check_thread())
+    #     await send_offline_message()
 
 if __name__ == "__main__":
     # load .env

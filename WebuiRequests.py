@@ -16,7 +16,10 @@ class ServerError (Exception):
         self.text = text
 
     def __str__(self) -> str:
-        return f"Error: webui http code {self.code}, {self.text}"
+        if self.code == -1:
+            return "Error: Not connected to webui"
+        else: 
+            return f"Error: webui http code {self.code}, {self.text}"
 
 async def  __decorated_requests(req_lambda):
     try:
@@ -135,27 +138,28 @@ async def find_model_by_hash(webui_url, modelhash) -> typing.Union[str, None]:
 
 
 # TODO: NEED CACHING RESPONSE AFTER get_sd_models()
-async def select_model_by_arg(webui_url, argument):
-    resp = await get_sd_models(webui_url)
+# async def select_model_by_arg(webui_url, argument):
+#     resp = await get_sd_models(webui_url)
 
-    option_payload = {}
-    model_title = ""
+#     option_payload = {}
+#     model_title = ""
 
-    if len(argument) > 2:
-        for value in resp:
-            if value["hash"] == argument:
-                model_title = value["title"]
-                option_payload = {"sd_model_checkpoint": model_title}
-    else:
-        model_title = resp[int(argument)-1]["title"]
-        option_payload = {"sd_model_checkpoint": model_title}
+#     if len(argument) > 2:
+#         for value in resp:
+#             if value["hash"] == argument:
+#                 model_title = value["title"]
+#                 option_payload = {"sd_model_checkpoint": model_title}
+#     else:
+#         model_title = resp[int(argument)-1]["title"]
+#         option_payload = {"sd_model_checkpoint": model_title}
     
-    await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload))
+#     await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload))
 
 
-async def select_model_by_hash(webui_url, model_title):
-    option_payload = {"sd_model_checkpoint": model_title}
-    await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload))
+async def select_model(webui_url, model):
+   option_payload = {"sd_model_checkpoint": model}
+   await __decorated_requests(lambda: requests.post(url=f'{webui_url}/sdapi/v1/options', json=option_payload))
+
     # try:
     #     await UserInteraction.send_success_embed(ctx, f'Checkpoint `{model_title}` will be set')
     #     post_result = requests.post(url=f'{webui_url}/sdapi/v1/options',

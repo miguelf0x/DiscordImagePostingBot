@@ -1,3 +1,5 @@
 /.temp/
-.env/
+.env
+config/config.yaml
+.vscode/
 __pycache__/
