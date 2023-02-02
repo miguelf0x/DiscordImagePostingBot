@@ -28,6 +28,8 @@ Currently available settings are:
 * `crsd_directory` sets directory for cursed images
 * `webui_url` sets URL for webUI
 * `enable_image_announce` enables message "x new images found"
+* `best_threshold` is count of votes for sending image to "best" channel
+* `crsd_threshold`is count of votes for sending image to "cursed" channel
 
 ## Commands
 
@@ -44,3 +46,4 @@ Currently available commands are:
 ## Authors
 
 - [@miguelf0x](https://www.github.com/miguelf0x)
+- [@weoses](https://www.github.com/weoses)

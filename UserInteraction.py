@@ -102,11 +102,13 @@ async def send_image(channel: interactions.Channel, file: str, description: str)
 
     embedding.description = description
     image = interactions.File(file)
-    # b1 = interactions.Button(label="ouu my", style=interactions.ButtonStyle.DANGER, custom_id="2")
-    # b2 = interactions.Button(label="no, dude", style=interactions.ButtonStyle.PRIMARY, custom_id="234")
 
-    # row = interactions.ActionRow.new(b1, b2)
+    embedding.set_footer("Likes: 0, Dislikes: 0")
+
+    best_button = interactions.Button(label="Nice", style=interactions.ButtonStyle.SUCCESS, custom_id="upvote")
+    crsd_button = interactions.Button(label="Cursed", style=interactions.ButtonStyle.DANGER, custom_id="downvote")
+    row = interactions.ActionRow.new(best_button, crsd_button)
 
     embedding.set_image(url=f"attachment://{os.path.basename(file)}")
 
-    await __waitable(lambda: channel.send(files=image, embeds=embedding))
+    await __waitable(lambda: channel.send(files=image, embeds=embedding, components=row))

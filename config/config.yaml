@@ -6,3 +6,5 @@ best_directory: Z:/Neural/SortedPictures/Best
 crsd_directory: Z:/Neural/SortedPictures/Crsd
 webui_url: http://127.0.0.1:7860
 enable_image_announce: 0
+crsd_threshold: 3
+best_threshold: 3

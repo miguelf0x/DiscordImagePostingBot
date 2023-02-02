@@ -296,6 +296,53 @@ async def current(ctx: interactions.CommandContext):
         await __handle_webui_exception(e, "Checking current model")
 
 
+@bot.component("upvote")
+async def upvote(ctx: interactions.ComponentContext):
+    await vote_counting(ctx, "up", best_threshold)
+
+
+@bot.component("downvote")
+async def downvote(ctx: interactions.ComponentContext):
+    await vote_counting(ctx, "dn", crsd_threshold)
+
+
+async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, threshold: int):
+    embed = ctx.message.embeds[0]
+    components = ctx.message.components
+    current_footer = embed.footer.text
+    spilt_sides = str(current_footer).split(", ")
+    votes = 0
+    new_footer = ""
+    target_channel = ""
+    match vote_type:
+        case "up":
+            votes = int(spilt_sides[0].replace("Likes: ", ""))
+            rest = spilt_sides[1]
+            votes += 1
+            new_footer = "Likes: " + str(votes) + ", " + rest
+            target_channel = best_channel
+        case "dn":
+            votes = int(spilt_sides[1].replace("Dislikes: ", ""))
+            rest = spilt_sides[0]
+            votes += 1
+            new_footer = rest + ", Dislikes: " + str(votes)
+            target_channel = crsd_channel
+
+    embed.set_footer(new_footer)
+    message = await ctx.message.edit(embeds=embed, components=components)
+
+    if votes == threshold:
+        await ctx.send(f"This image is now in #{target_channel}", ephemeral=True)
+        new_message = await target_channel.send(embeds=message.embeds, components=message.components)
+        message_link = new_message.url
+        embed.add_field("Voting was moved", f"[Check it here]({message_link})")
+        await message.edit(embeds=embed, components=None)
+    else:
+        await ctx.send("Your vote has been counted ;)", ephemeral=True)
+
+
+
+
 @bot.event
 async def on_ready():
     global post_channel
@@ -452,6 +499,8 @@ if __name__ == "__main__":
     crsd_directory = data["crsd_directory"]
     webui_url = data["webui_url"]
     enable_img_announce = data["enable_image_announce"]
+    best_threshold = data["best_threshold"]
+    crsd_threshold = data["crsd_threshold"]
 
     post_files = get_files(post_directory)
     best_files = get_files(best_directory)
