@@ -44,3 +44,4 @@ Currently available commands are:
 ## Authors
 
 - [@miguelf0x](https://www.github.com/miguelf0x)
+- [@weoses](https://www.github.com/weoses)
