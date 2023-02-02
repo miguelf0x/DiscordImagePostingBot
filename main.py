@@ -105,14 +105,14 @@ async def gen(ctx: interactions.CommandContext,
               width: int = 0,
               height: int = 0):
     """
-    Processing /gen request
+    Generating image by your request
     """
 
     global post_channel
     global tasks
 
     if width > 1536 or height > 1536:
-        await UserInteraction.send_error_embed(ctx, "Generating image", f'Sorry, but dont crash my GPU')
+        await UserInteraction.send_error_embed(ctx, "Generating image", f'My GPU cannot handle this')
         return
 
     await UserInteraction.send_working_embed(ctx, f'Your request is registered!')
@@ -148,13 +148,13 @@ async def gen(ctx: interactions.CommandContext,
 async def test(ctx: interactions.CommandContext):
     """
     Generate test image [512x512, Steps=100, tags=1girl, blue hair, bobcut, portrait, blush] \n
-    LETS BURN YOUR GPU UAAAAAARGH
+    LET IT BURN
     """
     global tasks
 
     prompt = PromptParser.get_prompt(1, 100, 512, 512, "1girl, blue hair, bobcut, portrait, blush")
 
-    await UserInteraction.send_success_embed(ctx, f'Your GPU is going to FIRE!')
+    await UserInteraction.send_success_embed(ctx, 'Your GPU is going to catch FIRE!')
 
     async def func():
         try:
@@ -234,11 +234,11 @@ async def find(ctx: interactions.CommandContext, modelhash: str):
 
 @bot.command(
     name="select",
-    description="Select model by hash or by /models id(haha not works yet)",
+    description="Select model by hash or by /models index",
     options=[
         interactions.Option(
             name="model",
-            description="Model hash or id from /models",
+            description="Model hash or index from /models",
             type=interactions.OptionType.STRING,
             required=True,
         ),
@@ -265,11 +265,11 @@ async def select(ctx: interactions.CommandContext, model: str):
             await UserInteraction.send_error_embed(ctx, "Selecting model", "Cant find model!")
             return
 
-        await UserInteraction.send_working_embed(ctx, f'Trying to select checkpoint `{select_payload}` ')
+        await UserInteraction.send_working_embed(ctx, f'Trying to select model `{select_payload}` ')
 
         await WebuiRequests.select_model(webui_url, select_payload)
 
-        await UserInteraction.send_success_embed(ctx, f'Checkpoint `{select_payload}` is now in use')
+        await UserInteraction.send_success_embed(ctx, f'Model `{select_payload}` is now in use')
     except Exception as e:
         await __handle_webui_exception(e, 'Selecting model')
 
@@ -287,7 +287,7 @@ async def skip(ctx: interactions.CommandContext):
 
 @bot.command(description="Get current active SD model")
 @logged
-async def current_model(ctx: interactions.CommandContext):
+async def current(ctx: interactions.CommandContext):
     try:
         get_data = await WebuiRequests.get_options(webui_url)
         model_name = get_data["sd_model_checkpoint"]
