@@ -306,6 +306,11 @@ async def downvote(ctx: interactions.ComponentContext):
     await vote_counting(ctx, "dn", crsd_threshold)
 
 
+@bot.component("remove")
+async def downvote(ctx: interactions.ComponentContext):
+    await vote_counting(ctx, "rm", del_threshold)
+
+
 async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, threshold: int):
     embed = ctx.message.embeds[0]
     components = ctx.message.components
@@ -314,33 +319,55 @@ async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, thre
     votes = 0
     new_footer = ""
     target_channel = ""
+
+    # Likes: 0, Dislikes: 0, Purge: 0
+
     match vote_type:
         case "up":
             votes = int(spilt_sides[0].replace("Likes: ", ""))
-            rest = spilt_sides[1]
+            rest = spilt_sides[1] + ", " + spilt_sides[2]
             votes += 1
             new_footer = "Likes: " + str(votes) + ", " + rest
             target_channel = best_channel
         case "dn":
             votes = int(spilt_sides[1].replace("Dislikes: ", ""))
-            rest = spilt_sides[0]
+            pre = spilt_sides[0]
+            aft = spilt_sides[2]
             votes += 1
-            new_footer = rest + ", Dislikes: " + str(votes)
+            new_footer = pre + ", Dislikes: " + str(votes) + aft
             target_channel = crsd_channel
+        case "rm":
+            votes = int(spilt_sides[2].replace("Purge: ", ""))
+            rest = spilt_sides[0] + ", " + spilt_sides[1]
+            votes += 1
+            new_footer = rest + ", Purge: " + str(votes)
+
 
     embed.set_footer(new_footer)
     message = await ctx.message.edit(embeds=embed, components=components)
 
     if votes == threshold:
-        await ctx.send(f"This image is now in #{target_channel}", ephemeral=True)
-        new_message = await target_channel.send(embeds=message.embeds, components=message.components)
-        message_link = new_message.url
-        embed.add_field("Voting was moved", f"[Check it here]({message_link})")
-        await message.edit(embeds=embed, components=None)
+        # await ctx.send("Your vote has been counted ;)", ephemeral=True)
+        try:
+            reply = await ctx.send(f"")
+            await reply.delete()
+        except Exception:
+            pass
+        if vote_type != "rm":
+            new_message = await target_channel.send(embeds=message.embeds, components=message.components)
+            message_link = new_message.url
+            embed.add_field("Voting was moved", f"[Check it here]({message_link})")
+            await message.edit(embeds=embed, components=None)
+        else:
+            await message.delete("Image was deleted by voting")
     else:
-        await ctx.send("Your vote has been counted ;)", ephemeral=True)
-
-
+        # await ctx.send("Your vote has been counted ;)", ephemeral=True)
+        try:
+            reply = await ctx.send(f"")
+            await reply.delete()
+        except Exception:
+            pass
+        pass
 
 
 @bot.event
@@ -501,6 +528,7 @@ if __name__ == "__main__":
     enable_img_announce = data["enable_image_announce"]
     best_threshold = data["best_threshold"]
     crsd_threshold = data["crsd_threshold"]
+    del_threshold = data["del_threshold"]
 
     post_files = get_files(post_directory)
     best_files = get_files(best_directory)
