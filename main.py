@@ -14,6 +14,7 @@ import ConfigHandler
 import PromptParser
 import UserInteraction
 import WebuiRequests
+import DBInteraction
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Main")
@@ -32,11 +33,14 @@ err_channel: interactions.Channel | None = None
 sd_models = None
 tasks = []
 
+db: DBInteraction.Database
+
 
 def logged(func):
     def inner(ctx: interactions.CommandContext, *args, **kwags):
         logger.info(f"command {ctx.command.name}, channel = {ctx.channel_id},  args = {args}, kwargs = {kwags}")
         return func(ctx, *args, **kwags)
+
 
     inner.__name__ = func.__name__
     return inner
@@ -315,32 +319,37 @@ async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, thre
     embed = ctx.message.embeds[0]
     components = ctx.message.components
     current_footer = embed.footer.text
-    spilt_sides = str(current_footer).split(", ")
-    votes = 0
     new_footer = ""
+    votes = 0
+    post_id = int(embed.fields[0].value.replace("#", ""))
     target_channel = ""
 
     # Likes: 0, Dislikes: 0, Purge: 0
 
     match vote_type:
         case "up":
-            votes = int(spilt_sides[0].replace("Likes: ", ""))
-            rest = spilt_sides[1] + ", " + spilt_sides[2]
-            votes += 1
-            new_footer = "Likes: " + str(votes) + ", " + rest
+            await DBInteraction.create_db_record(db, post_id, ctx.user.id, 1)
+            image_score = await DBInteraction.get_image_score(db, post_id)
+            new_footer = "Likes: " + str(image_score[0]) + \
+                         ", Dislikes: " + str(image_score[1]) + \
+                         ", Purge: " + str(image_score[2])
             target_channel = best_channel
+            votes = image_score[0]
         case "dn":
-            votes = int(spilt_sides[1].replace("Dislikes: ", ""))
-            pre = spilt_sides[0]
-            aft = spilt_sides[2]
-            votes += 1
-            new_footer = pre + ", Dislikes: " + str(votes) + aft
+            await DBInteraction.create_db_record(db, post_id, ctx.user.id, -1)
+            image_score = await DBInteraction.get_image_score(db, post_id)
+            new_footer = "Likes: " + str(image_score[0]) + \
+                         ", Dislikes: " + str(image_score[1]) + \
+                         ", Purge: " + str(image_score[2])
             target_channel = crsd_channel
+            votes = image_score[1]
         case "rm":
-            votes = int(spilt_sides[2].replace("Purge: ", ""))
-            rest = spilt_sides[0] + ", " + spilt_sides[1]
-            votes += 1
-            new_footer = rest + ", Purge: " + str(votes)
+            await DBInteraction.create_db_record(db, post_id, ctx.user.id, -1000)
+            image_score = await DBInteraction.get_image_score(db, post_id)
+            new_footer = "Likes: " + str(image_score[0]) + \
+                         ", Dislikes: " + str(image_score[1]) + \
+                         ", Purge: " + str(image_score[2])
+            votes = image_score[2]
 
 
     embed.set_footer(new_footer)
@@ -359,7 +368,7 @@ async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, thre
             embed.add_field("Voting was moved", f"[Check it here]({message_link})")
             await message.edit(embeds=embed, components=None)
         else:
-            await message.delete("Image was deleted by voting")
+            await message.edit(f"Image #{post_id} was deleted by voting", embeds=None, components=None)
     else:
         # await ctx.send("Your vote has been counted ;)", ephemeral=True)
         try:
@@ -372,6 +381,7 @@ async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, thre
 
 @bot.event
 async def on_ready():
+
     global post_channel
     global best_channel
     global crsd_channel
@@ -387,6 +397,7 @@ async def on_ready():
     await channel_poster(crsd_channel, crsd_files, crsd_directory)
 
     ui_state = False
+
     while True:
         await asyncio.sleep(check_interval)
         new_state = await WebuiRequests.get_check_online(webui_url)
@@ -462,10 +473,22 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
     except Exception:
         pass
 
-    await UserInteraction.send_image(channel, path,
-                                     f'Model: `{model_name}`\nHash `{modelhash}`, Sampler: `{sampler}`\n'
-                                     f'Steps: `{steps}`, CFG: `{cfg_scale}`, Seed: `{seed}`\n'
-                                     f'Resolution: `{width}x{height} [AR: {aspect}]`')
+    image_description = (
+        f'Model: `{model_name}`\nHash `{modelhash}`, Sampler: `{sampler}`\n'
+        f'Steps: `{steps}`, CFG: `{cfg_scale}`, Seed: `{seed}`\n'
+        f'Resolution: `{width}x{height} [AR: {aspect}]`'
+    )
+
+    global db
+    print(db)
+    last_image_index = await DBInteraction.get_last_image_index(db)
+
+    result = await UserInteraction.send_image(channel, path, image_description, last_image_index)
+    if result == 0:
+        await DBInteraction.create_db_record(db, last_image_index+1, 0, 0)
+    else:
+        print("ХУЙ ХУЙ ХУЙ ХУЙ ХУЙ")
+        raise Exception
 
 
 async def channel_poster(channel: interactions.Channel, files: set, directory: str):
@@ -529,6 +552,7 @@ if __name__ == "__main__":
     best_threshold = data["best_threshold"]
     crsd_threshold = data["crsd_threshold"]
     del_threshold = data["del_threshold"]
+    db_full_path = data["db_full_path"]
 
     post_files = get_files(post_directory)
     best_files = get_files(best_directory)
@@ -539,5 +563,8 @@ if __name__ == "__main__":
     BEST_CHANNEL_ID = int(os.environ['BEST_CHANNEL_ID'])
     CRSD_CHANNEL_ID = int(os.environ['CRSD_CHANNEL_ID'])
     ERR_CHANNEL_ID = int(os.environ['ERR_CHANNEL_ID'])
+
+    db = DBInteraction.Database(db_path=db_full_path)
+    DBInteraction.create_db_structure(db)
 
     bot.start()
