@@ -539,6 +539,7 @@ async def check_state_change(last: bool, new: bool):
     #     await send_offline_message()
 
 
+
 if __name__ == "__main__":
     # load .env
     load_dotenv()
