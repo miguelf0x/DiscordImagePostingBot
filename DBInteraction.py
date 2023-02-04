@@ -1,11 +1,12 @@
-import aiosqlite
-import asyncio
-
-
 import logging
+
+import aiosqlite
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Main")
 logger.setLevel(level=logging.DEBUG)
+
+
 def logged(func):
     def inner(function: func, *args, **kwags):
         logger.info(f"Function {func.__name__} called with:\n"

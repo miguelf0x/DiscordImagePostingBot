@@ -493,7 +493,6 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
     if result == 0:
         await DBInteraction.create_db_record(db, last_image_index+1, 0, 0)
     else:
-        print("ХУЙ ХУЙ ХУЙ ХУЙ ХУЙ")
         raise Exception
 
 
