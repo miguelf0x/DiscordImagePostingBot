@@ -96,14 +96,15 @@ async def send_found_messages(channel: interactions.Channel, count):
     await __waitable(lambda: channel.send(f'Found {count} new picture(s). I will post them soon!'))
 
 
-async def send_image(channel: interactions.Channel, file: str, description: str, post_id: int):
+async def send_image(channel: interactions.Channel, file: str, description: str, resolution: str, post_id: int):
     embedding = interactions.Embed()
     embedding.title = 'Generated image'
 
     embedding.description = description
     image = interactions.File(file)
 
-    embedding.add_field("Post ID", f"#{post_id+1}")
+    embedding.add_field("Post ID", f"#{post_id+1}", inline=True)
+    embedding.add_field("Resolution", resolution, inline=True)
 
     embedding.set_footer("Likes: 0, Dislikes: 0, Purge: 0")
 

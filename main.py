@@ -151,14 +151,14 @@ async def gen(ctx: interactions.CommandContext,
 @logged
 async def test(ctx: interactions.CommandContext):
     """
-    Generate test image [512x512, Steps=100, tags=1girl, blue hair, bobcut, portrait, blush] \n
+    Generate test image [800x600, Steps=100, tags=1girl, red hair, long hair] \n
     LET IT BURN
     """
     global tasks
 
-    prompt = PromptParser.get_prompt(1, 100, 512, 512, "1girl, blue hair, bobcut, portrait, blush")
+    prompt = PromptParser.get_prompt(1, 100, 800, 600, "1girl, red hair, long hair")
 
-    await UserInteraction.send_success_embed(ctx, 'Your GPU is going to catch FIRE!')
+    await UserInteraction.send_working_embed(ctx, 'Your GPU is going to catch FIRE!')
 
     async def func():
         try:
@@ -318,7 +318,6 @@ async def downvote(ctx: interactions.ComponentContext):
 async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, threshold: int):
     embed = ctx.message.embeds[0]
     components = ctx.message.components
-    current_footer = embed.footer.text
     new_footer = ""
     votes = 0
     post_id = int(embed.fields[0].value.replace("#", ""))
@@ -455,7 +454,6 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
     model_name = "unknown"
 
     if len(name) >= 7:
-
         seed = name[0]
         sampler = name[1]
         steps = name[2]
@@ -463,7 +461,7 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
         modelhash = name[4]
         width = name[5]
         height = name[6].split('.')[0]
-        aspect = round(int(width) / int(height), 4)
+        aspect = round(int(width) / int(height), 3)
     else:
         seed = 'unknown'
         sampler = 'unknown'
@@ -482,14 +480,15 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
     image_description = (
         f'Model: `{model_name}`\nHash `{modelhash}`, Sampler: `{sampler}`\n'
         f'Steps: `{steps}`, CFG: `{cfg_scale}`, Seed: `{seed}`\n'
-        f'Resolution: `{width}x{height} [AR: {aspect}]`'
+
     )
 
+    resolution = f'{width}x{height} [{aspect}:1]'
+
     global db
-    print(db)
     last_image_index = await DBInteraction.get_last_image_index(db)
 
-    result = await UserInteraction.send_image(channel, path, image_description, last_image_index)
+    result = await UserInteraction.send_image(channel, path, image_description, resolution, last_image_index)
     if result == 0:
         await DBInteraction.create_db_record(db, last_image_index+1, 0, 0)
     else:
@@ -538,7 +537,6 @@ async def check_state_change(last: bool, new: bool):
     #     await send_online_message()
     # else: 
     #     await send_offline_message()
-
 
 
 if __name__ == "__main__":
