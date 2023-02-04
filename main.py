@@ -386,6 +386,11 @@ async def on_ready():
     global best_channel
     global crsd_channel
     global err_channel
+    global db
+
+    db = DBInteraction.Database(db_path=db_full_path)
+    await db.connect()
+    await DBInteraction.create_db_structure(db)
 
     post_channel = await interactions.get(bot, interactions.Channel, object_id=POST_CHANNEL_ID)
     best_channel = await interactions.get(bot, interactions.Channel, object_id=BEST_CHANNEL_ID)
@@ -407,7 +412,7 @@ async def on_ready():
 
 async def __handle_webui_exception(e: Exception, action):
     global err_channel
-    logger.error(e)
+    logger.exception(e)
     if e is WebuiRequests.ServerError:
         await send_offline_message()
     else:
@@ -428,6 +433,7 @@ def get_files(source) -> set:
     List all files in directory
     """
     files = set()
+    os.makedirs(source, exist_ok=True)
     for file in os.listdir(source):
         fullpath = os.path.join(source, file)
         if os.path.isfile(fullpath):
@@ -535,6 +541,7 @@ async def check_state_change(last: bool, new: bool):
     #     await send_offline_message()
 
 
+
 if __name__ == "__main__":
     # load .env
     load_dotenv()
@@ -563,8 +570,5 @@ if __name__ == "__main__":
     BEST_CHANNEL_ID = int(os.environ['BEST_CHANNEL_ID'])
     CRSD_CHANNEL_ID = int(os.environ['CRSD_CHANNEL_ID'])
     ERR_CHANNEL_ID = int(os.environ['ERR_CHANNEL_ID'])
-
-    db = DBInteraction.Database(db_path=db_full_path)
-    DBInteraction.create_db_structure(db)
 
     bot.start()

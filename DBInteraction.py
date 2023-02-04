@@ -1,5 +1,5 @@
 import aiosqlite
-import os
+import asyncio
 
 
 import logging
@@ -18,25 +18,19 @@ def logged(func):
 
 
 class Database(object):
-    db_con = None
+    __slots__ = ("db_con", "db_path")
 
     def __init__(self, db_path: str):
-        if not self.db_con:
-            if os.path.exists(db_path):
-                self.db_con = aiosqlite.connect(db_path)
-            else:
-                trimmed_path = db_path.rsplit("/", 1)[0]
-                os.makedirs(trimmed_path)
-                with open(db_path, 'w') as file:
-                    file.write("")
-                file.close()
-                self.db_con = aiosqlite.connect(db_path)
+        self.db_path = db_path
+
+    async def connect(self):
+        self.db_con = await aiosqlite.connect(self.db_path)
 
     async def query(self, sql):
-        db_cur = await Database.db_con.cursor()
+        db_cur = await self.db_con.cursor()
         await db_cur.execute(sql)
         result = await db_cur.fetchone()
-        await db_cur.commit()
+        await self.db_con.commit()
         return result
 
 
@@ -51,10 +45,10 @@ async def create_db_structure(db: Database):
 async def create_db_record(db: Database, post_id, user_id, action):
     INSERT_QUERY = f"INSERT INTO posts(post_id, user_id, action) VALUES({post_id}, {user_id}, {action})"
     REMOVE_QUERY = f"DELETE FROM posts WHERE post_id == {post_id} AND user_id == {user_id} AND action == {action}"
-    CHECK_QUERY = f"SELECT * FROM posts WHERE post_id == {post_id} AND user_id == {user_id} AND action == {action}"
+    CHECK_QUERY = f"SELECT count(*) FROM posts WHERE post_id == {post_id} AND user_id == {user_id} AND action == {action}"
 
     check = await db.query(CHECK_QUERY)
-    if check[0] is None:
+    if check[0] == 0:
         await db.query(INSERT_QUERY)
     else:
         await db.query(REMOVE_QUERY)
@@ -90,7 +84,7 @@ async def get_image_score(db: Database, post_id) -> list:
     else:
         rmvotes = int(rmvotes_t[0])
 
-    return [upvotes, abs(dnvotes), rmvotes / -1000]
+    return [upvotes, abs(dnvotes), int(rmvotes / -1000)]
 
 
 @logged
