@@ -461,7 +461,20 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
         modelhash = name[4]
         width = name[5]
         height = name[6].split('.')[0]
-        aspect = round(int(width) / int(height), 3)
+        if int(width) > int(height):
+            width_aspect = round(int(width) / int(height), 3)
+            height_aspect = 1
+        else:
+            width_ratio = 1 / (int(width) / int(height))
+            width_aspect = round(int(width) / int(height) * width_ratio, 3)
+            height_aspect = 1 * width_ratio
+            print(height_aspect)
+            i = divmod(height_aspect, 1.0)
+            print(i)
+            if divmod(height_aspect, 1.0)[1] == 0.0:
+                height_aspect = int(height_aspect)
+            if divmod(width_aspect, 1.0)[1] == 0.0:
+                width_aspect = int(width_aspect)
     else:
         seed = 'unknown'
         sampler = 'unknown'
@@ -470,7 +483,8 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
         modelhash = 'unknown'
         width = 'unknown'
         height = 'unknown'
-        aspect = 'unknown'
+        width_aspect = '?'
+        height_aspect = '?'
 
     try:
         model_name = await WebuiRequests.find_model_by_hash(webui_url, modelhash)
@@ -478,17 +492,17 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
         pass
 
     image_description = (
-        f'Model: `{model_name}`\nHash `{modelhash}`, Sampler: `{sampler}`\n'
-        f'Steps: `{steps}`, CFG: `{cfg_scale}`, Seed: `{seed}`\n'
-
+        f'Sampler: `{sampler}`, Steps: `{steps}`,\n'
+        f'CFG: `{cfg_scale}`, Seed: `{seed}`'
     )
 
-    resolution = f'{width}x{height} [{aspect}:1]'
+    resolution = f'{width}x{height} [{width_aspect}:{height_aspect}]'
+    model = f'{model_name}'
 
     global db
     last_image_index = await DBInteraction.get_last_image_index(db)
 
-    result = await UserInteraction.send_image(channel, path, image_description, resolution, last_image_index)
+    result = await UserInteraction.send_image(channel, path, image_description, resolution, model, last_image_index)
     if result == 0:
         await DBInteraction.create_db_record(db, last_image_index+1, 0, 0)
     else:
