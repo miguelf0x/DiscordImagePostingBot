@@ -89,19 +89,31 @@ async def state(ctx: interactions.CommandContext):
         ),
         interactions.Option(
             name="width",
-            description="Image width (px)",
+            description="Image width (px) [32 - 1536]",
             type=interactions.OptionType.INTEGER,
             required=False,
         ),
         interactions.Option(
             name="height",
-            description="Image height (px)",
+            description="Image height (px) [32 - 1536]",
             type=interactions.OptionType.INTEGER,
             required=False,
         ),
         interactions.Option(
             name="sampler",
             description="Sampler (usually \"Euler\", \"DPM2\" or \"PLMS\")",
+            type=interactions.OptionType.STRING,
+            required=False,
+        ),
+        interactions.Option(
+            name="cfg_scale",
+            description="Config scale adjusts how much result is close to prompt (bigger is more precise) [1.0 - 20.0]",
+            type=interactions.OptionType.STRING,
+            required=False,
+        ),
+        interactions.Option(
+            name="neg_tags",
+            description="Influences image generation by negating these tags [custom_tags | long | short]",
             type=interactions.OptionType.STRING,
             required=False,
         ),
@@ -114,7 +126,9 @@ async def gen(ctx: interactions.CommandContext,
               steps: int = 0,
               width: int = 0,
               height: int = 0,
-              sampler: str = "Euler"):
+              sampler: str = "Euler",
+              neg_tags: str = "short",
+              cfg_scale: float = 6.0):
     """
     Generating image by your request
     """
@@ -128,7 +142,7 @@ async def gen(ctx: interactions.CommandContext,
 
     await UserInteraction.send_working_embed(ctx, f'Your request is registered!')
 
-    prompt = PromptParser.get_prompt(image_count, steps, width, height, tags, sampler)
+    prompt = PromptParser.get_prompt(image_count, steps, width, height, tags, neg_tags, sampler, cfg_scale)
 
     async def pad():
         try:
