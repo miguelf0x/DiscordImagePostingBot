@@ -468,9 +468,7 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
             width_ratio = 1 / (int(width) / int(height))
             width_aspect = round(int(width) / int(height) * width_ratio, 3)
             height_aspect = 1 * width_ratio
-            print(height_aspect)
-            i = divmod(height_aspect, 1.0)
-            print(i)
+
             if divmod(height_aspect, 1.0)[1] == 0.0:
                 height_aspect = int(height_aspect)
             if divmod(width_aspect, 1.0)[1] == 0.0:
@@ -491,18 +489,16 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
     except Exception:
         pass
 
-    image_description = (
-        f'Sampler: `{sampler}`, Steps: `{steps}`,\n'
-        f'CFG: `{cfg_scale}`, Seed: `{seed}`'
-    )
-
+    image_description = ""
     resolution = f'{width}x{height} [{width_aspect}:{height_aspect}]'
     model = f'{model_name}'
+    gensettings = f'Sampler: {sampler}@{steps}, Config scale: {cfg_scale}, Seed: {seed}'
 
     global db
     last_image_index = await DBInteraction.get_last_image_index(db)
 
-    result = await UserInteraction.send_image(channel, path, image_description, resolution, model, last_image_index)
+    result = await UserInteraction.send_image(channel, path, image_description, resolution, model, gensettings,
+                                              last_image_index)
     if result == 0:
         await DBInteraction.create_db_record(db, last_image_index+1, 0, 0)
     else:

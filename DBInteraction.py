@@ -95,7 +95,5 @@ async def get_last_image_index(db: Database):
         last_image_index = 0
     else:
         last_image_index = int(base_returned[0])
-    print("last_image_index type is " + str(type(last_image_index)))
-    print("last_image_index value is " + str(last_image_index))
 
     return last_image_index

@@ -97,7 +97,7 @@ async def send_found_messages(channel: interactions.Channel, count):
 
 
 async def send_image(channel: interactions.Channel, file: str, description: str, resolution: str, model: str,
-                     post_id: int):
+                     gensettings: str, post_id: int):
     embedding = interactions.Embed()
     embedding.title = 'Generated image'
 
@@ -107,6 +107,7 @@ async def send_image(channel: interactions.Channel, file: str, description: str,
     embedding.add_field("Post ID", f"#{post_id+1}", inline=True)
     embedding.add_field("Resolution", resolution, inline=True)
     embedding.add_field("Model", model, inline=True)
+    embedding.add_field("Generation settings", gensettings, inline=False)
 
     embedding.set_footer("Likes: 0, Dislikes: 0, Purge: 0")
 
