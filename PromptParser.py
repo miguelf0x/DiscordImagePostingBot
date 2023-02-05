@@ -22,7 +22,9 @@ def get_prompt(batch_count: int, steps: int, width: int, height: int, tags: str,
     if height != 0:
         prompt["height"] = str(height)
 
-    if neg_tags.lower() == "long":
+    if neg_tags.lower() == "mega":
+        prompt["negative_prompt"] = PromptTemplate.MEGA_NEGATIVE_PROMPT_CONCAT
+    elif neg_tags.lower() == "long":
         prompt["negative_prompt"] = PromptTemplate.LONG_NEGATIVE_PROMPT_CONCAT
     elif neg_tags.lower() == "short":
         prompt["negative_prompt"] = PromptTemplate.TRIM_NEGATIVE_PROMPT_CONCAT

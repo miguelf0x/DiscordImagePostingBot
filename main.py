@@ -282,7 +282,7 @@ async def select(ctx: interactions.CommandContext, model: str):
         select_payload = None
 
         for ind, value in enumerate(avail_models):
-            if value["hash"] == model or ind == select_by_index:
+            if value["hash"] == model or ind == (select_by_index - 1):
                 select_payload = value["title"]
                 break
 
@@ -515,7 +515,7 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
     image_description = ""
     resolution = f'{width}x{height} [{width_aspect}:{height_aspect}]'
     model = f'{model_name}'
-    gensettings = f'Sampler: {sampler}@{steps}, Config scale: {cfg_scale}, Seed: {seed}'
+    gensettings = f'{sampler}@{steps}, CFG scale: {cfg_scale}, Seed: {seed}'
 
     global db
     last_image_index = await DBInteraction.get_last_image_index(db)
