@@ -177,7 +177,7 @@ async def test(ctx: interactions.CommandContext):
     """
     global tasks
 
-    prompt = PromptParser.get_prompt(1, 100, 800, 600, "1girl, red hair, long hair")
+    prompt = PromptParser.get_prompt(1, 100, 800, 600, "1girl, red hair, long hair", "short", "Euler", 7.0)
 
     await UserInteraction.send_working_embed(ctx, 'Your GPU is going to catch FIRE!')
 
