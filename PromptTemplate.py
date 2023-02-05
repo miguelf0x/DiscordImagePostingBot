@@ -21,6 +21,10 @@ TRIM_NEGATIVE_PROMPT_0X = "extra fingers, blurry, cloned face, artifacts, signat
 TRIM_NEGATIVE_PROMPT_CONCAT = TRIM_NEGATIVE_PROMPT_4X + TRIM_NEGATIVE_PROMPT_3X + TRIM_NEGATIVE_PROMPT_2X + \
                               TRIM_NEGATIVE_PROMPT_1X + TRIM_NEGATIVE_PROMPT_0X
 
+SAMPLERS = ["Euler", "Euler a", "LMS", "Heun", "DPM2", "DPM2 a", "DPM++ 2S a", "DPM++ 2M", "DPM fast",
+            "DPM adaptive", "LMS Karras", "DPM2 Karras", "DPM2 a Karras", "DPM++ 2S a Karras",
+            "DPM++ 2M Karras", "DDIM", "PLMS"]
+
 PROMPT_TEMPLATE = {
     "prompt": "1girl, standing, blue_hair",
     "negative_prompt": TRIM_NEGATIVE_PROMPT_CONCAT,

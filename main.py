@@ -99,6 +99,12 @@ async def state(ctx: interactions.CommandContext):
             type=interactions.OptionType.INTEGER,
             required=False,
         ),
+        interactions.Option(
+            name="sampler",
+            description="Sampler (usually \"Euler\", \"DPM2\" or \"PLMS\")",
+            type=interactions.OptionType.STRING,
+            required=False,
+        ),
     ],
 )
 @logged
@@ -107,7 +113,8 @@ async def gen(ctx: interactions.CommandContext,
               image_count: int = 0,
               steps: int = 0,
               width: int = 0,
-              height: int = 0):
+              height: int = 0,
+              sampler: str = "Euler"):
     """
     Generating image by your request
     """
@@ -121,7 +128,7 @@ async def gen(ctx: interactions.CommandContext,
 
     await UserInteraction.send_working_embed(ctx, f'Your request is registered!')
 
-    prompt = PromptParser.get_prompt(image_count, steps, width, height, tags)
+    prompt = PromptParser.get_prompt(image_count, steps, width, height, tags, sampler)
 
     async def pad():
         try:
@@ -461,6 +468,7 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
         modelhash = name[4]
         width = name[5]
         height = name[6].split('.')[0]
+
         if int(width) > int(height):
             width_aspect = round(int(width) / int(height), 3)
             height_aspect = 1
@@ -468,11 +476,12 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
             width_ratio = 1 / (int(width) / int(height))
             width_aspect = round(int(width) / int(height) * width_ratio, 3)
             height_aspect = 1 * width_ratio
-
             if divmod(height_aspect, 1.0)[1] == 0.0:
                 height_aspect = int(height_aspect)
-            if divmod(width_aspect, 1.0)[1] == 0.0:
-                width_aspect = int(width_aspect)
+
+        if divmod(width_aspect, 1.0)[1] == 0.0:
+            width_aspect = int(width_aspect)
+
     else:
         seed = 'unknown'
         sampler = 'unknown'
