@@ -484,17 +484,21 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
         height = name[6].split('.')[0]
 
         if int(width) > int(height):
-            width_aspect = round(int(width) / int(height), 3)
+            width_aspect = int(width) / int(height)
             height_aspect = 1
         else:
             width_ratio = 1 / (int(width) / int(height))
-            width_aspect = round(int(width) / int(height) * width_ratio, 3)
+            width_aspect = int(width) / int(height) * width_ratio
             height_aspect = 1 * width_ratio
             if divmod(height_aspect, 1.0)[1] == 0.0:
                 height_aspect = int(height_aspect)
+            else:
+                height_aspect = round(height_aspect, 3)
 
         if divmod(width_aspect, 1.0)[1] == 0.0:
             width_aspect = int(width_aspect)
+        else:
+            width_aspect = round(height_aspect, 3)
 
     else:
         seed = 'unknown'
