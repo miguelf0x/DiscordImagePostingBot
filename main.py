@@ -1,7 +1,3 @@
-# Tikhomirov Mikhail, 2023
-# github.com/miguelf0x
-
-
 import asyncio
 import logging
 import os
@@ -16,23 +12,23 @@ import UserInteraction
 import WebuiRequests
 import DBInteraction
 
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Main")
 logger.setLevel(level=logging.DEBUG)
 
+
 load_dotenv()
-
 bot = interactions.Client(token=os.environ['DISCORD_API_TOKEN'])
-webui_url = ""
 
+
+webui_url = ""
 post_channel: interactions.Channel | None = None
 best_channel: interactions.Channel | None = None
 crsd_channel: interactions.Channel | None = None
 err_channel: interactions.Channel | None = None
-
 sd_models = None
 tasks = []
-
 db: DBInteraction.Database
 
 
@@ -51,6 +47,24 @@ def logged(func):
 async def help(ctx: interactions.CommandContext):
     """Show help message"""
     await UserInteraction.send_help_embed(ctx)
+
+
+@bot.command(
+    name="man",
+    description="Show command usage guide",
+    options=[
+        interactions.Option(
+            name="command",
+            description="Guide for this command will be shown",
+            type=interactions.OptionType.STRING,
+            required=True,
+        ),
+    ],
+)
+@logged
+async def man(ctx: interactions.CommandContext, command: str):
+    """Show command usage guide"""
+    await UserInteraction.send_man_embed(ctx, command)
 
 
 @bot.command()
@@ -75,7 +89,7 @@ async def state(ctx: interactions.CommandContext):
             required=True,
         ),
         interactions.Option(
-            name="image_count",
+            name="img_count",
             description="How many pictures to generate in parallel [1-8]",
             type=interactions.OptionType.INTEGER,
             required=False,
@@ -121,7 +135,7 @@ async def state(ctx: interactions.CommandContext):
 @logged
 async def gen(ctx: interactions.CommandContext,
               tags: str,
-              image_count: int = 0,
+              img_count: int = 0,
               steps: int = 0,
               width: int = 0,
               height: int = 0,
@@ -141,7 +155,7 @@ async def gen(ctx: interactions.CommandContext,
 
     await UserInteraction.send_working_embed(ctx, f'Your request is registered!')
 
-    prompt = PromptParser.get_prompt(image_count, steps, width, height, tags, neg_tags, sampler, cfg_scale)
+    prompt = PromptParser.get_prompt(img_count, steps, width, height, tags, neg_tags, sampler, cfg_scale)
 
     async def pad():
         try:

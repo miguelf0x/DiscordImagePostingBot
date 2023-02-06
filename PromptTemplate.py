@@ -13,10 +13,10 @@ LONG_NEGATIVE_PROMPT_CONCAT = LONG_NEGATIVE_PROMPT_4X + LONG_NEGATIVE_PROMPT_3X 
 
 TRIM_NEGATIVE_PROMPT_4X = "((((ugly)))), ((((gross)))), "
 TRIM_NEGATIVE_PROMPT_3X = "(((mutation))), (((deformed))), (((bad proportions))), (((disfigured))), " \
-                          "(((extra arms))), (((extra legs))),"
+                          "(((extra arms))), (((extra legs))), "
 TRIM_NEGATIVE_PROMPT_2X = "((morbid)), ((mutilated)), ((poorly drawn hands)), ((bad anatomy)), ((extra limbs)), " \
-                          "((out of frame)), ((missing arms)), ((missing legs)),"
-TRIM_NEGATIVE_PROMPT_1X = "(malformed), (fused fingers), (too many fingers), (watermark),"
+                          "((out of frame)), ((missing arms)), ((missing legs)), "
+TRIM_NEGATIVE_PROMPT_1X = "(malformed), (fused fingers), (too many fingers), (watermark), "
 TRIM_NEGATIVE_PROMPT_0X = "extra fingers, blurry, cloned face, artifacts, signature, username"
 
 TRIM_NEGATIVE_PROMPT_CONCAT = TRIM_NEGATIVE_PROMPT_4X + TRIM_NEGATIVE_PROMPT_3X + TRIM_NEGATIVE_PROMPT_2X + \

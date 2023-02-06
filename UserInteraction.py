@@ -4,27 +4,68 @@ import threading
 
 import interactions
 
-HELP_TEXT = {
-    "default": "`/gen` - picture generation\n"
-               "`/state` - show current task ETA, step and completion %\n"
-               "`/help` - show this help message\n"
-               "`/refresh` - refresh models in WebUI folder\n"
-               "`/models` - list all models in WebUI folder\n"
-               "`/find` - find model by hash\n"
-               "`/select` - set model by index or hash",
+COMMANDS = ["gen", "state", "refresh", "models", "find", "select", "help", "man"]
 
-    "generate": "$g `steps`, `width`, `height`, `tag_1`, `tag_2`, `tag_n`\n"
-                "$g `steps`, `tag_1`, `tag_2`, `tag_n`\n"
-                "$g `tag_1`, `tag_2`, `tag_n`",
+HELP_TEXT = (
+    "`/gen` - picture generation\n"
+    "`/state` - show current task ETA, step and completion %\n"
+    "`/refresh` - refresh models in WebUI folder\n"
+    "`/models` - list all models in WebUI folder\n"
+    "`/find` - find model by hash\n"
+    "`/select` - set model by index in /models or by hash"
+    "`/help` - show this help message\n"
+    "`/man [command]` - show command info"
+)
 
-    "batch": "$b `count`, `steps`, `width`, `height`, `tag_1`, `tag_2`, `tag_n`\n"
-             "$b `count`, `steps`, `tag_1`, `tag_2`, `tag_n`\n"
-             "$b `count`, `tag_1`, `tag_2`, `tag_n`",
+HELP_COMMAND_USAGE = {
 
-    "find_ckpt": "$find `hash`",
+    "gen": "/gen (tags) [neg_tags] [width] [height] [sampler] [steps] [cfg_scale] [img_count]",
+    "state": "/state",
+    "refresh": "/refresh",
+    "models": "/models",
+    "find": "/find (hash)",
+    "select": "/select (hash) or /select (index)",
+    "help": "/help",
+    "man": "/man (command)"
 
-    "set_ckpt": "$set `hash`\n"
-                "$set `index`"
+}
+
+HELP_COMMAND_ARGS = {
+
+    "gen": "(tags) - your prompt in plain language or booru tags separated by comma\n"
+           "          Allowed input: text\n"
+           "[neg_tags] - your negative prompt that is used for excluding unwanted generation results\n"
+           "          Allowed input: text\n"
+           "[width] - image width in pixels\n"
+           "          Allowed input: integer in range 16 - 1536\n"
+           "[height] - image height in pixels\n"
+           "           Allowed input: integer in range 16 - 1536\n"
+           "[sampler] - Stable Diffusion sampler. For more info refer to /tips command output\n"
+           "            Allowed input: text, refer to /samplers command output\n"
+           "[steps] - interference steps\n"
+           "          Allowed input: integer in range 1 - 300\n"
+           "[cfg_scale] - how strict is your prompt. Low value may lead to random color noise instead of image\n"
+           "              Allowed input: float in range 1.0 - 20.0, step - 0.5\n"
+           "[img_count] - count of image for parallel generation. Does seriously increase generating time\n"
+           "              Allowed input: integer in range 1 - 8",
+
+    "state": "None",
+    "refresh": "None",
+    "models": "None",
+
+    "find": "(hash) - hash of searched model\n"
+    "                 Allowed input: hash",
+    
+    "select": "(hash) - hash of required model\n"
+              "         Allowed input: hash\n"
+              "or\n"
+              "(index) - index of required model in /models command output\n"
+              "          Allowed input: integer in range of /models indexes",
+
+    "help": "None",
+
+    "man": "(command) - any command from /help output\n"
+           "            Allowed input: text, refer to /help command output",
 
 }
 
@@ -42,7 +83,7 @@ async def __waitable(func):
     return await func()
 
 
-async def send_custom_embed(ctx, title, description, embed_type):
+async def send_custom_embed(ctx, title, description, embed_type, ephemeral=False):
     match embed_type:
         case "INFO":
             color = interactions.Color.blurple()
@@ -62,7 +103,8 @@ async def send_custom_embed(ctx, title, description, embed_type):
         color=color,
         description=description
     )
-    await __waitable(lambda: ctx.send(embeds=embedding))
+
+    await __waitable(lambda: ctx.send(embeds=embedding, ephemeral=ephemeral))
 
 
 async def send_error_embed(ctx, action, error):
@@ -82,14 +124,26 @@ async def send_info_embed(ctx, title, description):
     await send_custom_embed(ctx, title, description, "INFO")
 
 
-async def send_oops_embed(ctx, command):
-    description = (f'Command argument is missing or wrong!\n'
-                   f'Correct usage is:\n{HELP_TEXT[command]}')
-    await send_custom_embed(ctx, "Oops!", description, "WARN")
-
-
 async def send_help_embed(ctx):
-    await send_custom_embed(ctx, "Available commands", HELP_TEXT["default"], "INFO")
+    await send_custom_embed(ctx, "Available commands", HELP_TEXT, "INFO", True)
+
+
+async def send_man_embed(ctx: interactions.CommandContext, command: str):
+
+    embedding = interactions.Embed(
+        title="Commands",
+        color=0x5865F2,
+    )
+
+    if command in COMMANDS:
+        embedding.add_field("Command name", command, inline=False)
+        embedding.add_field("Usage", HELP_COMMAND_USAGE[command], inline=False)
+        embedding.add_field("Arguments", HELP_COMMAND_ARGS[command], inline=False)
+
+    else:
+        embedding.add_field("Command not found", "For available commands list use /help", inline=False)
+
+    await __waitable(lambda: ctx.send(embeds=embedding, ephemeral=True))
 
 
 async def send_found_messages(channel: interactions.Channel, count):
