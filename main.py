@@ -113,7 +113,7 @@ async def state(ctx: interactions.CommandContext):
         ),
         interactions.Option(
             name="neg_tags",
-            description="Influences image generation by negating these tags [custom_tags | long | short]",
+            description="Influences image generation by negating these tags [ your_custom_tags | long | short | mega ]",
             type=interactions.OptionType.STRING,
             required=False,
         ),
