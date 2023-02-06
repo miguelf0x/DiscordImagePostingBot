@@ -57,7 +57,6 @@ async def help(ctx: interactions.CommandContext):
 @logged
 async def state(ctx: interactions.CommandContext):
     """Check current task state"""
-    logger.debug("/state command")
     try:
         description = await WebuiRequests.get_progress(webui_url)
         await UserInteraction.send_custom_embed(ctx, 'Current task state', description, "INFO")
@@ -172,8 +171,7 @@ async def gen(ctx: interactions.CommandContext,
 @logged
 async def test(ctx: interactions.CommandContext):
     """
-    Generate test image [800x600, Steps=100, tags=1girl, red hair, long hair] \n
-    LET IT BURN
+    Generate test image [800x600, Steps=100, tags=1girl, red hair, long hair]
     """
     global tasks
 
@@ -215,7 +213,6 @@ async def refresh(ctx: interactions.CommandContext):
 @logged
 async def models(ctx: interactions.CommandContext):
     """Show available models"""
-    logger.info("/models")
     try:
         cached_models = await get_sd_models_cached()
         count = 0
@@ -250,8 +247,8 @@ async def find(ctx: interactions.CommandContext, modelhash: str):
             await UserInteraction.send_success_embed(ctx, f'Found model `{name}` '
                                                           f'with hash `{modelhash}`')
         else:
-            await UserInteraction.send_error_embed(ctx, f"Checkpoints search", f'No checkpoints '
-                                                                               f'found with hash {modelhash}')
+            await UserInteraction.send_error_embed(ctx, f"Checkpoints search",
+                                                   f'No checkpoints found with hash {modelhash}')
 
     except Exception as e:
         await __handle_webui_exception(e, "Selecting model")
@@ -339,38 +336,31 @@ async def downvote(ctx: interactions.ComponentContext):
 async def vote_counting(ctx: interactions.ComponentContext, vote_type: str, threshold: int):
     embed = ctx.message.embeds[0]
     components = ctx.message.components
-    new_footer = ""
     votes = 0
     post_id = int(embed.fields[0].value.replace("#", ""))
     target_channel = ""
-
+    image_score = []
     # Likes: 0, Dislikes: 0, Purge: 0
 
     match vote_type:
         case "up":
             await DBInteraction.create_db_record(db, post_id, ctx.user.id, 1)
             image_score = await DBInteraction.get_image_score(db, post_id)
-            new_footer = "Likes: " + str(image_score[0]) + \
-                         ", Dislikes: " + str(image_score[1]) + \
-                         ", Purge: " + str(image_score[2])
             target_channel = best_channel
             votes = image_score[0]
         case "dn":
             await DBInteraction.create_db_record(db, post_id, ctx.user.id, -1)
             image_score = await DBInteraction.get_image_score(db, post_id)
-            new_footer = "Likes: " + str(image_score[0]) + \
-                         ", Dislikes: " + str(image_score[1]) + \
-                         ", Purge: " + str(image_score[2])
             target_channel = crsd_channel
             votes = image_score[1]
         case "rm":
             await DBInteraction.create_db_record(db, post_id, ctx.user.id, -1000)
             image_score = await DBInteraction.get_image_score(db, post_id)
-            new_footer = "Likes: " + str(image_score[0]) + \
-                         ", Dislikes: " + str(image_score[1]) + \
-                         ", Purge: " + str(image_score[2])
             votes = image_score[2]
 
+    new_footer = "Likes: " + str(image_score[0]) + \
+                 ", Dislikes: " + str(image_score[1]) + \
+                 ", Purge: " + str(image_score[2])
 
     embed.set_footer(new_footer)
     message = await ctx.message.edit(embeds=embed, components=components)
