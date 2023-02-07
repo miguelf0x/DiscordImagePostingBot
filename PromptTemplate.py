@@ -25,7 +25,8 @@ TRIM_NEGATIVE_PROMPT_CONCAT = TRIM_NEGATIVE_PROMPT_4X + TRIM_NEGATIVE_PROMPT_3X 
 
 MEGA_NEGATIVE_MUTATIONS = "(((mutation))), (((mutated))), (((disfigured))), (((morbid))), (((mutilated))), " \
                           "(((malformed))), (((fused))), (((bad anatomy))), (((cloned)), (((duplicate))), " \
-                          "(((deformed))), ((anatomical nonsense)), ((ugly)), ((gross)), ((uncoordinated body))), "
+                          "(((deformed))), (((long body))), ((anatomical nonsense)), ((ugly)), ((gross)), " \
+                          "((uncoordinated body))), "
 MEGA_NEGATIVE_PARTS = "((cloned face)), ((duplicated face)), ((extra arms)), ((missing arms)), ((extra legs)), " \
                       "((missing legs)), ((extra breasts)), ((missing breasts)), ((extra fingers)), " \
                       "((missing fingers)), ((extra ears)), ((missing ears)), ((long neck)), "
@@ -36,9 +37,24 @@ MEGA_NEGATIVE_IMAGE = "((lowres)), ((worst quality)), ((old photo)), ((colorless
 MEGA_NEGATIVE_PROMPT_CONCAT = MEGA_NEGATIVE_MUTATIONS + MEGA_NEGATIVE_PARTS + MEGA_NEGATIVE_IMAGE
 
 
+MEGAFLAT_NEGATIVE_MUTATIONS = "((mutation)), ((mutated)), ((disfigured)), ((morbid)), ((mutilated)), " \
+                              "((malformed)), ((fused)), ((bad anatomy)), ((cloned)), ((duplicate)), " \
+                              "((deformed)), ((long body)), ((anatomical nonsense)), ((ugly)), ((gross)), " \
+                              "((uncoordinated body))), "
+MEGAFLAT_NEGATIVE_PARTS = "((cloned face)), ((duplicated face)), ((extra arms)), ((missing arms)), ((extra legs)), " \
+                          "((missing legs)), ((extra breasts)), ((missing breasts)), ((extra fingers)), " \
+                          "((missing fingers)), ((extra ears)), ((missing ears)), ((long neck)), "
+MEGAFLAT_NEGATIVE_IMAGE = "((lowres)), ((worst quality)), ((old photo)), ((colorless)), ((out of frame)), " \
+                          "(messy drawing), (bad shadow), (error), (blurred), (censored), (censor bar), " \
+                          "text font ui, jpeg artifacts, signature, username, copyright, watermark"
+
+MEGAFLAT_NEGATIVE_PROMPT_CONCAT = MEGAFLAT_NEGATIVE_MUTATIONS + MEGAFLAT_NEGATIVE_PARTS + MEGAFLAT_NEGATIVE_IMAGE
+
+
 SAMPLERS = ["Euler", "Euler a", "LMS", "Heun", "DPM2", "DPM2 a", "DPM++ 2S a", "DPM++ 2M", "DPM fast",
             "DPM adaptive", "LMS Karras", "DPM2 Karras", "DPM2 a Karras", "DPM++ 2S a Karras",
             "DPM++ 2M Karras", "DDIM", "PLMS"]
+
 
 PROMPT_TEMPLATE = {
     "prompt": "1girl, standing, blue_hair",
