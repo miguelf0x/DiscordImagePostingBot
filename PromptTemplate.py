@@ -44,9 +44,9 @@ MEGAFLAT_NEGATIVE_MUTATIONS = "((mutation)), ((mutated)), ((disfigured)), ((morb
 MEGAFLAT_NEGATIVE_PARTS = "((cloned face)), ((duplicated face)), ((extra arms)), ((missing arms)), ((extra legs)), " \
                           "((missing legs)), ((extra breasts)), ((missing breasts)), ((extra fingers)), " \
                           "((missing fingers)), ((extra ears)), ((missing ears)), ((long neck)), "
-MEGAFLAT_NEGATIVE_IMAGE = "((lowres)), ((worst quality)), ((old photo)), ((colorless)), ((out of frame)), " \
-                          "(messy drawing), (bad shadow), (error), (blurred), (censored), (censor bar), " \
-                          "text font ui, jpeg artifacts, signature, username, copyright, watermark"
+MEGAFLAT_NEGATIVE_IMAGE = "((lowres)), ((worst quality)), ((low quality)), ((old photo)), ((colorless)), " \
+                          "((out of frame)), (messy drawing), (bad shadow), (error), (blurred), (censored), " \
+                          "(censor bar), text font ui, jpeg artifacts, signature, username, copyright, watermark"
 
 MEGAFLAT_NEGATIVE_PROMPT_CONCAT = MEGAFLAT_NEGATIVE_MUTATIONS + MEGAFLAT_NEGATIVE_PARTS + MEGAFLAT_NEGATIVE_IMAGE
 
