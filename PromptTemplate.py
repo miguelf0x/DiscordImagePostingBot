@@ -40,7 +40,7 @@ MEGA_NEGATIVE_PROMPT_CONCAT = MEGA_NEGATIVE_MUTATIONS + MEGA_NEGATIVE_PARTS + ME
 MEGAFLAT_NEGATIVE_MUTATIONS = "((mutation)), ((mutated)), ((disfigured)), ((morbid)), ((mutilated)), " \
                               "((malformed)), ((fused)), ((bad anatomy)), ((cloned)), ((duplicate)), " \
                               "((deformed)), ((long body)), ((anatomical nonsense)), ((ugly)), ((gross)), " \
-                              "((uncoordinated body))), "
+                              "((uncoordinated body)), "
 MEGAFLAT_NEGATIVE_PARTS = "((cloned face)), ((duplicated face)), ((extra arms)), ((missing arms)), ((extra legs)), " \
                           "((missing legs)), ((extra breasts)), ((missing breasts)), ((extra fingers)), " \
                           "((missing fingers)), ((extra ears)), ((missing ears)), ((long neck)), "
