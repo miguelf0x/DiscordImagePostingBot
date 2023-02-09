@@ -4,6 +4,8 @@ import threading
 
 import interactions
 
+import main
+
 COMMANDS = ["gen", "state", "refresh", "models", "find", "select", "help", "man"]
 
 HELP_TEXT = (
@@ -151,7 +153,7 @@ async def send_found_messages(channel: interactions.Channel, count):
 
 
 async def send_image(channel: interactions.Channel, file: str, description: str, resolution: str, model: str,
-                     gensettings: str, post_id: int):
+                     seed: str, gensettings: str, post_id: int, button_names: list):
     embedding = interactions.Embed()
     embedding.title = 'Generated image'
 
@@ -161,13 +163,17 @@ async def send_image(channel: interactions.Channel, file: str, description: str,
     embedding.add_field("Post ID", f"#{post_id+1}", inline=True)
     embedding.add_field("Resolution", resolution, inline=True)
     embedding.add_field("Model", model, inline=True)
+    embedding.add_field("Seed", seed, inline=False)
     embedding.add_field("Generation settings", gensettings, inline=False)
 
     embedding.set_footer("Likes: 0, Dislikes: 0, Purge: 0")
 
-    best_button = interactions.Button(label="Nice", style=interactions.ButtonStyle.SUCCESS, custom_id="upvote")
-    crsd_button = interactions.Button(label="Cursed", style=interactions.ButtonStyle.SECONDARY, custom_id="downvote")
-    rem_button = interactions.Button(label="Delete", style=interactions.ButtonStyle.DANGER, custom_id="remove")
+    best_button = interactions.Button(label=button_names[0], style=interactions.ButtonStyle.SUCCESS,
+                                      custom_id="upvote")
+    crsd_button = interactions.Button(label=button_names[1], style=interactions.ButtonStyle.SECONDARY,
+                                      custom_id="downvote")
+    rem_button = interactions.Button(label=button_names[2], style=interactions.ButtonStyle.DANGER,
+                                     custom_id="remove")
     row = interactions.ActionRow.new(best_button, crsd_button, rem_button)
 
     embedding.set_image(url=f"attachment://{os.path.basename(file)}")

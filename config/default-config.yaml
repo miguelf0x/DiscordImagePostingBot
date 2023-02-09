@@ -10,3 +10,6 @@ crsd_threshold: 3
 best_threshold: 3
 del_threshold: 3
 db_full_path: Z:/Neural/RawPictures/islabot/db/isla.db
+upvote_button_name: Nice
+dnvote_button_name: Cursed
+rmvote_button_name: Delete

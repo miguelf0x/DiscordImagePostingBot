@@ -523,13 +523,14 @@ async def send_generated_file(path: str, channel: interactions.Channel | None):
     image_description = ""
     resolution = f'{width}x{height} [{width_aspect}:{height_aspect}]'
     model = f'{model_name}'
-    gensettings = f'{sampler}@{steps}, CFG scale: {cfg_scale}, Seed: {seed}'
+    gensettings = f'{sampler}@{steps}, CFG scale: {cfg_scale}'
+    seed = f'{seed}'
 
     global db
     last_image_index = await DBInteraction.get_last_image_index(db)
 
-    result = await UserInteraction.send_image(channel, path, image_description, resolution, model, gensettings,
-                                              last_image_index)
+    result = await UserInteraction.send_image(channel, path, image_description, resolution, model, seed, gensettings,
+                                              last_image_index, button_names)
     if result == 0:
         await DBInteraction.create_db_record(db, last_image_index+1, 0, 0)
     else:
@@ -599,6 +600,10 @@ if __name__ == "__main__":
     crsd_threshold = data["crsd_threshold"]
     del_threshold = data["del_threshold"]
     db_full_path = data["db_full_path"]
+    upvote_button_name = data["upvote_button_name"]
+    dnvote_button_name = data["dnvote_button_name"]
+    rmvote_button_name = data["rmvote_button_name"]
+    button_names = [upvote_button_name, dnvote_button_name, rmvote_button_name]
 
     post_files = get_files(post_directory)
     best_files = get_files(best_directory)
